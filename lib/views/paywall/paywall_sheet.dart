@@ -157,7 +157,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                   'ContextVault Pro',
                   style: TextStyle(
                     fontSize: 24,
-                    fontWeight: FontWeight.extrabold,
+                    fontWeight: FontWeight.w800,
                     color: Colors.white,
                     letterSpacing: -0.5,
                   ),
@@ -362,7 +362,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                   style: TextStyle(
                     color: Color(0xFF58A6FF),
                     fontSize: 11,
-                    fontWeight: FontWeight.extrabold,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
