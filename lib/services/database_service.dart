@@ -13,13 +13,14 @@ class DatabaseService {
 
     _db = await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE snippets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             content TEXT NOT NULL,
+            category TEXT DEFAULT 'All',
             useCount INTEGER DEFAULT 0,
             isPinned INTEGER DEFAULT 0,
             createdAt TEXT,
@@ -27,29 +28,43 @@ class DatabaseService {
           )
         ''');
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute("ALTER TABLE snippets ADD COLUMN category TEXT DEFAULT 'All'");
+        }
+      },
     );
   }
 
-  static Stream<List<Snippet>> watchSnippets({String query = ''}) async* {
-    yield await getSnippets(query: query);
-    yield* _streamController.stream.asyncMap((_) => getSnippets(query: query));
+  static Stream<List<Snippet>> watchSnippets({String query = '', String category = 'All'}) async* {
+    yield await getSnippets(query: query, category: category);
+    yield* _streamController.stream.asyncMap((_) => getSnippets(query: query, category: category));
   }
 
-  static Future<List<Snippet>> getSnippets({String query = ''}) async {
+  static Future<List<Snippet>> getSnippets({String query = '', String category = 'All'}) async {
     List<Map<String, dynamic>> maps;
-    if (query.trim().isEmpty) {
-      maps = await _db.query(
-        'snippets',
-        orderBy: 'isPinned DESC, lastUsedAt DESC',
-      );
-    } else {
-      maps = await _db.query(
-        'snippets',
-        where: 'title LIKE ? OR content LIKE ?',
-        whereArgs: ['%$query%', '%$query%'],
-        orderBy: 'isPinned DESC, lastUsedAt DESC',
-      );
+    List<String> whereClauses = [];
+    List<dynamic> whereArgs = [];
+
+    if (query.trim().isNotEmpty) {
+      whereClauses.add('(title LIKE ? OR content LIKE ?)');
+      whereArgs.addAll(['%$query%', '%$query%']);
     }
+
+    if (category != 'All') {
+      whereClauses.add('(category = ? OR content LIKE ? OR title LIKE ?)');
+      whereArgs.addAll([category, '%#$category%', '%$category%']);
+    }
+
+    final whereString = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : null;
+
+    maps = await _db.query(
+      'snippets',
+      where: whereString,
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+      orderBy: 'isPinned DESC, lastUsedAt DESC',
+    );
+
     return maps.map((e) => Snippet.fromMap(e)).toList();
   }
 
@@ -65,6 +80,11 @@ class DatabaseService {
       );
     }
     _notify();
+  }
+
+  static Future<void> togglePin(Snippet snippet) async {
+    snippet.isPinned = !snippet.isPinned;
+    await saveSnippet(snippet);
   }
 
   static Future<void> deleteSnippet(int id) async {

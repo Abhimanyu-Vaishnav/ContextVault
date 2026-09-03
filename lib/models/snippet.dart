@@ -2,6 +2,7 @@ class Snippet {
   int? id;
   String title;
   String content;
+  String category;
   int useCount;
   bool isPinned;
   DateTime createdAt;
@@ -11,6 +12,7 @@ class Snippet {
     this.id,
     this.title = '',
     this.content = '',
+    this.category = 'All',
     this.useCount = 0,
     this.isPinned = false,
     DateTime? createdAt,
@@ -23,6 +25,7 @@ class Snippet {
       'id': id,
       'title': title,
       'content': content,
+      'category': category,
       'useCount': useCount,
       'isPinned': isPinned ? 1 : 0,
       'createdAt': createdAt.toIso8601String(),
@@ -35,6 +38,7 @@ class Snippet {
       id: map['id'] as int?,
       title: map['title'] as String,
       content: map['content'] as String,
+      category: map['category'] as String? ?? 'All',
       useCount: map['useCount'] as int? ?? 0,
       isPinned: (map['isPinned'] as int? ?? 0) == 1,
       createdAt: DateTime.parse(map['createdAt'] as String),
