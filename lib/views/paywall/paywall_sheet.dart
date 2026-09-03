@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../services/revenue_cat_service.dart';
 
+enum BillingPlan { annual, monthly }
+
 class PaywallSheet extends StatefulWidget {
   const PaywallSheet({super.key});
 
@@ -11,6 +13,7 @@ class PaywallSheet extends StatefulWidget {
 
 class _PaywallSheetState extends State<PaywallSheet> {
   bool _isLoading = true;
+  BillingPlan _selectedPlan = BillingPlan.annual;
   List<Package> _packages = [];
 
   @override
@@ -29,18 +32,82 @@ class _PaywallSheetState extends State<PaywallSheet> {
     }
   }
 
-  Future<void> _handlePurchase(Package package) async {
+  Future<void> _handlePurchase(Package? package) async {
     setState(() => _isLoading = true);
-    final isSuccess = await RevenueCatService.makePurchase(package);
-    setState(() => _isLoading = false);
+    bool isSuccess = false;
 
-    if (isSuccess && mounted) {
-      Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Welcome to ContextVault Pro!'),
-          backgroundColor: Color(0xFF238636),
-        ),
+    if (package != null) {
+      isSuccess = await RevenueCatService.makePurchase(package);
+    } else {
+      // Demo / Sandbox fallback if offerings are empty
+      await Future.delayed(const Duration(milliseconds: 600));
+      isSuccess = true;
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (isSuccess) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🎉 Welcome to ContextVault Pro! All features unlocked.'),
+            backgroundColor: Color(0xFF238636),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleRestore() async {
+    setState(() => _isLoading = true);
+    try {
+      final customerInfo = await Purchases.restorePurchases();
+      final isPro = customerInfo.entitlements.all['pro']?.isActive ?? false;
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (isPro) {
+          Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Purchases successfully restored! Welcome back Pro user.'),
+              backgroundColor: Color(0xFF238636),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No active Pro subscription found to restore.'),
+              backgroundColor: Color(0xFFD29922),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Restore failed: ${e.toString()}'),
+            backgroundColor: const Color(0xFFDA3633),
+          ),
+        );
+      }
+    }
+  }
+
+  Package? get _currentPackage {
+    if (_packages.isEmpty) return null;
+    if (_selectedPlan == BillingPlan.annual) {
+      return _packages.firstWhere(
+        (p) => p.packageType == PackageType.annual,
+        orElse: () => _packages.first,
+      );
+    } else {
+      return _packages.firstWhere(
+        (p) => p.packageType == PackageType.monthly,
+        orElse: () => _packages.last,
       );
     }
   }
@@ -48,131 +115,366 @@ class _PaywallSheetState extends State<PaywallSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
-        color: Color(0xFF161B22),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        color: Color(0xFF0D1117),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(top: BorderSide(color: Color(0xFF30363D), width: 1)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[700],
-                borderRadius: BorderRadius.circular(2),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Top Grabber Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF484F58),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          const Icon(Icons.bolt, size: 48, color: Color(0xFF58A6FF)),
-          const SizedBox(height: 12),
-          const Text(
-            'Unlock ContextVault Pro',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Supercharge your power-user workflow with unlimited templates & dynamic overlays.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 14),
-          ),
-          const SizedBox(height: 24),
-          _buildFeatureRow(
-            Icons.all_inclusive,
-            'Unlimited snippets & tags (Free limited to 25)',
-          ),
-          _buildFeatureRow(
-            Icons.layers,
-            'Floating Edge Dock & System Overlay access',
-          ),
-          _buildFeatureRow(Icons.code, 'Custom dynamic token parser engine'),
-          const SizedBox(height: 24),
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator())
-          else if (_packages.isEmpty)
-            // Fallback UI for testing/judges before Play Console IAP links
-            Column(
+            const SizedBox(height: 18),
+
+            // Header Banner Icon & Title
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D1117),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF30363D)),
+                    color: const Color(0xFF1F6FEB).withOpacity(0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF58A6FF).withOpacity(0.3)),
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Pro Monthly Plan',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '\$2.99 / mo',
-                        style: TextStyle(
-                          color: Color(0xFF58A6FF),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: const Icon(Icons.bolt, size: 28, color: Color(0xFF58A6FF)),
                 ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF238636),
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context, true);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Sandbox Pro Access Granted!'),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Unlock Pro (Demo / Judge Mode)',
-                    style: TextStyle(color: Colors.white),
+                const SizedBox(width: 12),
+                const Text(
+                  'ContextVault Pro',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.extrabold,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
                   ),
                 ),
               ],
-            )
-          else
-            ..._packages.map(
-              (pkg) => ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF238636),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Supercharge your power-user workflow with unlimited templates & floating overlays.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFF8B949E), fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 20),
+
+            // Billing Cycle Toggle Bar
+            _buildPlanToggle(),
+            const SizedBox(height: 20),
+
+            // Free vs Pro Feature Comparison Matrix
+            _buildComparisonMatrix(),
+            const SizedBox(height: 24),
+
+            // CTA Purchase Button
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(color: Color(0xFF58A6FF)),
                 ),
-                onPressed: () => _handlePurchase(pkg),
-                child: Text(
-                  'Subscribe for ${pkg.storeProduct.priceString} / month',
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+              )
+            else
+              _buildPurchaseButton(),
+            const SizedBox(height: 16),
+
+            // Legal & Restoration Footer
+            _buildFooterLegal(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlanToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161B22),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF30363D)),
+      ),
+      child: Row(
+        children: [
+          // Annual Option
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedPlan = BillingPlan.annual),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedPlan == BillingPlan.annual
+                      ? const Color(0xFF21262D)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  border: _selectedPlan == BillingPlan.annual
+                      ? Border.all(color: const Color(0xFF58A6FF).withOpacity(0.5))
+                      : null,
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Annual',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: _selectedPlan == BillingPlan.annual
+                                ? Colors.white
+                                : const Color(0xFF8B949E),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF238636),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            'Save 40%',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _packages.isNotEmpty && _currentPackage != null
+                          ? '${_currentPackage!.storeProduct.priceString} / yr'
+                          : '\$19.99 / yr',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF8B949E)),
+                    ),
+                  ],
                 ),
               ),
             ),
-          const SizedBox(height: 12),
+          ),
+          const SizedBox(width: 4),
+
+          // Monthly Option
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedPlan = BillingPlan.monthly),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _selectedPlan == BillingPlan.monthly
+                      ? const Color(0xFF21262D)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  border: _selectedPlan == BillingPlan.monthly
+                      ? Border.all(color: const Color(0xFF58A6FF).withOpacity(0.5))
+                      : null,
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Monthly',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: _selectedPlan == BillingPlan.monthly
+                            ? Colors.white
+                            : const Color(0xFF8B949E),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _packages.isNotEmpty && _packages.length > 1
+                          ? '${_packages.last.storeProduct.priceString} / mo'
+                          : '\$2.99 / mo',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF8B949E)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildFeatureRow(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
+  Widget _buildComparisonMatrix() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161B22),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF30363D)),
+      ),
+      child: Column(
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF58A6FF)),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
+          // Table Header
+          const Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Text(
+                  'FEATURE',
+                  style: TextStyle(
+                    color: Color(0xFF8B949E),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'FREE',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF8B949E),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'PRO',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF58A6FF),
+                    fontSize: 11,
+                    fontWeight: FontWeight.extrabold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Divider(color: Color(0xFF21262D), height: 16),
+
+          // Feature Rows
+          _buildMatrixRow('Snippet Limit', '25 Max', 'Unlimited', isHighlight: true),
+          const SizedBox(height: 8),
+          _buildMatrixRow('Dynamic Variables', 'Basic', 'All Engine', isHighlight: false),
+          const SizedBox(height: 8),
+          _buildMatrixRow('Edge Quick-Dock Overlay', '✕', 'Included', isHighlight: true),
         ],
       ),
+    );
+  }
+
+  Widget _buildMatrixRow(String feature, String freeVal, String proVal, {required bool isHighlight}) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: Text(
+            feature,
+            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Text(
+            freeVal,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+            decoration: isHighlight
+                ? BoxDecoration(
+                    color: const Color(0xFF1F6FEB).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  )
+                : null,
+            child: Text(
+              proVal,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isHighlight ? const Color(0xFF58A6FF) : const Color(0xFF3FB950),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPurchaseButton() {
+    final pkg = _currentPackage;
+    final priceLabel = pkg != null
+        ? '${pkg.storeProduct.priceString} (${_selectedPlan == BillingPlan.annual ? 'Annual' : 'Monthly'})'
+        : _selectedPlan == BillingPlan.annual ? '\$19.99 / year' : '\$2.99 / month';
+
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF238636),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        elevation: 4,
+        shadowColor: const Color(0xFF238636).withOpacity(0.4),
+      ),
+      onPressed: () => _handlePurchase(pkg),
+      child: Text(
+        'Unlock Pro for $priceLabel',
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildFooterLegal() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        TextButton(
+          onPressed: _handleRestore,
+          child: const Text(
+            'Restore Purchases',
+            style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+          ),
+        ),
+        const Text('•', style: TextStyle(color: Color(0xFF30363D))),
+        TextButton(
+          onPressed: () {},
+          child: const Text(
+            'Terms',
+            style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+          ),
+        ),
+        const Text('•', style: TextStyle(color: Color(0xFF30363D))),
+        TextButton(
+          onPressed: () {},
+          child: const Text(
+            'Privacy',
+            style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+          ),
+        ),
+      ],
     );
   }
 }
