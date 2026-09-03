@@ -5,6 +5,7 @@ import 'core/utils/template_parser.dart';
 import 'models/snippet.dart';
 import 'services/database_service.dart';
 import 'services/revenue_cat_service.dart';
+import 'services/quick_access_service.dart';
 import 'views/paywall/paywall_sheet.dart';
 import 'views/editor/snippet_editor_sheet.dart';
 
@@ -12,6 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DatabaseService.init();
   await RevenueCatService.init();
+  await QuickAccessService.startQuickAccessNotification();
   runApp(const ContextVaultApp());
 }
 
