@@ -41,7 +41,31 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'All';
+  Snippet? _selectedSnippet;
   final List<String> _categories = ['All', 'Work', 'Personal', 'Dev', 'Templates'];
+  final FocusNode _searchFocusNode = FocusNode();
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _handleNewSnippet(bool isLargeScreen) {
+    HapticFeedback.lightImpact();
+    if (isLargeScreen) {
+      setState(() => _selectedSnippet = Snippet());
+    } else {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const SnippetEditorSheet(),
+      );
+    }
+  }
 
   Future<void> _handleSnippetCopy(Snippet snippet) async {
     HapticFeedback.lightImpact();
@@ -89,7 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
       userInputs: userInputs,
     );
 
-    // Standard Android Intent / System Share fallback via Clipboard share notification
     await Clipboard.setData(ClipboardData(text: parsedText));
     await DatabaseService.markUsed(snippet);
 
@@ -173,225 +196,371 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF161B22),
-        elevation: 0,
-        title: const Row(
-          children: [
-            Icon(Icons.shield_outlined, color: Color(0xFF58A6FF), size: 22),
-            SizedBox(width: 8),
-            Text(
-              'ContextVault',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bolt, color: Color(0xFF58A6FF)),
-            tooltip: 'Unlock Pro',
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => const PaywallSheet(),
-              );
+    final mediaWidth = MediaQuery.of(context).size.width;
+    final isLargeScreen = mediaWidth >= 600;
+
+    return Shortcuts(
+      shortcuts: <LogicalKeySet, Intent>{
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF): const FocusSearchIntent(),
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyN): const CreateSnippetIntent(),
+        LogicalKeySet(LogicalKeyboardKey.escape): const ClearSearchIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          FocusSearchIntent: CallbackAction<FocusSearchIntent>(
+            onInvoke: (FocusSearchIntent intent) {
+              _searchFocusNode.requestFocus();
+              return null;
             },
           ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(105),
-          child: Column(
-            children: [
-              // Search Input Box
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: TextField(
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Instant search snippets...',
-                    hintStyle: const TextStyle(color: Color(0xFF484F58)),
-                    prefixIcon: const Icon(Icons.search, color: Color(0xFF8B949E), size: 18),
-                    filled: true,
-                    fillColor: const Color(0xFF0D1117),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFF30363D)),
+          CreateSnippetIntent: CallbackAction<CreateSnippetIntent>(
+            onInvoke: (CreateSnippetIntent intent) {
+              _handleNewSnippet(isLargeScreen);
+              return null;
+            },
+          ),
+          ClearSearchIntent: CallbackAction<ClearSearchIntent>(
+            onInvoke: (ClearSearchIntent intent) {
+              setState(() {
+                _searchQuery = '';
+                _searchController.clear();
+              });
+              _searchFocusNode.unfocus();
+              return null;
+            },
+          ),
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFF0D1117),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF161B22),
+            elevation: 0,
+            title: Row(
+              children: [
+                const Icon(Icons.shield_outlined, color: Color(0xFF58A6FF), size: 22),
+                const SizedBox(width: 8),
+                const Text(
+                  'ContextVault',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                ),
+                if (isLargeScreen) ...[
+                  const SizedBox(width: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF21262D),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF30363D)),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFF58A6FF)),
+                    child: const Text(
+                      'DeX Mode Supported (Ctrl+F, Ctrl+N, Esc)',
+                      style: TextStyle(color: Color(0xFF8B949E), fontSize: 11),
                     ),
                   ),
-                ),
+                ],
+              ],
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.bolt, color: Color(0xFF58A6FF)),
+                tooltip: 'Unlock Pro',
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const PaywallSheet(),
+                  );
+                },
               ),
-              const SizedBox(height: 6),
-
-              // Category Filter Bar
-              SizedBox(
-                height: 38,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: _categories.length,
-                  itemBuilder: (context, index) {
-                    final cat = _categories[index];
-                    final isSelected = _selectedCategory == cat;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          setState(() => _selectedCategory = cat);
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFF1F6FEB) : const Color(0xFF161B22),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isSelected ? const Color(0xFF58A6FF) : const Color(0xFF30363D),
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              cat,
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : const Color(0xFF8B949E),
-                                fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(105),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: TextField(
+                      focusNode: _searchFocusNode,
+                      controller: _searchController,
+                      onChanged: (val) => setState(() => _searchQuery = val),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Instant search snippets (Ctrl+F)...',
+                        hintStyle: const TextStyle(color: Color(0xFF484F58)),
+                        prefixIcon: const Icon(Icons.search, color: Color(0xFF8B949E), size: 18),
+                        filled: true,
+                        fillColor: const Color(0xFF0D1117),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFF30363D)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFF58A6FF)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 38,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      itemCount: _categories.length,
+                      itemBuilder: (context, index) {
+                        final cat = _categories[index];
+                        final isSelected = _selectedCategory == cat;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: GestureDetector(
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              setState(() => _selectedCategory = cat);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF1F6FEB) : const Color(0xFF161B22),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? const Color(0xFF58A6FF) : const Color(0xFF30363D),
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  cat,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : const Color(0xFF8B949E),
+                                    fontSize: 12,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
-      body: StreamBuilder<List<Snippet>>(
-        stream: DatabaseService.watchSnippets(
-          query: _searchQuery,
-          category: _selectedCategory,
-        ),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF58A6FF)),
-            );
-          }
-          final snippets = snapshot.data!;
-          if (snippets.isEmpty) {
-            return _buildEmptyState();
-          }
-          return ListView.builder(
-            itemCount: snippets.length,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            itemBuilder: (context, index) {
-              final snippet = snippets[index];
-              return Dismissible(
-                key: Key(snippet.id.toString()),
-                direction: DismissDirection.endToStart,
-                confirmDismiss: (direction) async {
-                  HapticFeedback.mediumImpact();
-                  if (!context.mounted) return false;
-                  final shouldDelete = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      backgroundColor: const Color(0xFF161B22),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        side: const BorderSide(color: Color(0xFF30363D)),
-                      ),
-                      title: const Text('Delete Snippet?', style: TextStyle(color: Colors.white)),
-                      content: Text(
-                        'Are you sure you want to delete "${snippet.title}"?',
-                        style: const TextStyle(color: Color(0xFF8B949E)),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('Cancel', style: TextStyle(color: Color(0xFF8B949E))),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFDA3633),
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Delete'),
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  );
-                  return shouldDelete ?? false;
-                },
-                onDismissed: (direction) async {
-                  if (snippet.id != null) {
-                    final messenger = ScaffoldMessenger.of(context);
-                    await DatabaseService.deleteSnippet(snippet.id!);
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text('Deleted "${snippet.title}"'),
-                        backgroundColor: const Color(0xFFDA3633),
-                      ),
-                    );
-                  }
-                },
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDA3633).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFDA3633).withValues(alpha: 0.5)),
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text('Delete', style: TextStyle(color: Color(0xFFF85149), fontWeight: FontWeight.bold)),
-                      SizedBox(width: 8),
-                      Icon(Icons.delete_outline, color: Color(0xFFF85149)),
-                    ],
-                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+          body: isLargeScreen ? _buildDualPaneLayout() : _buildSinglePaneLayout(),
+          floatingActionButton: isLargeScreen
+              ? null
+              : FloatingActionButton(
+                  backgroundColor: const Color(0xFF238636),
+                  elevation: 4,
+                  child: const Icon(Icons.add, color: Colors.white),
+                  onPressed: () => _handleNewSnippet(false),
                 ),
-                child: _buildSnippetCard(snippet),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF238636),
-        elevation: 4,
-        child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => const SnippetEditorSheet(),
-          );
-        },
+        ),
       ),
     );
   }
 
-  Widget _buildSnippetCard(Snippet snippet) {
+  Widget _buildSinglePaneLayout() {
+    return StreamBuilder<List<Snippet>>(
+      stream: DatabaseService.watchSnippets(
+        query: _searchQuery,
+        category: _selectedCategory,
+      ),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF58A6FF)));
+        }
+        final snippets = snapshot.data!;
+        if (snippets.isEmpty) {
+          return _buildEmptyState(false);
+        }
+        return ListView.builder(
+          itemCount: snippets.length,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          itemBuilder: (context, index) {
+            final snippet = snippets[index];
+            return _buildDismissibleSnippetCard(snippet, false);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDualPaneLayout() {
+    return Row(
+      children: [
+        // Left Pane (40% Width) - Snippet Master List
+        Expanded(
+          flex: 4,
+          child: Container(
+            decoration: const BoxDecoration(
+              border: Border(right: BorderSide(color: Color(0xFF30363D))),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF238636),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 44),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('New Snippet (Ctrl+N)', style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () => _handleNewSnippet(true),
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<List<Snippet>>(
+                    stream: DatabaseService.watchSnippets(
+                      query: _searchQuery,
+                      category: _selectedCategory,
+                    ),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator(color: Color(0xFF58A6FF)));
+                      }
+                      final snippets = snapshot.data!;
+                      if (snippets.isEmpty) {
+                        return _buildEmptyState(true);
+                      }
+                      return ListView.builder(
+                        itemCount: snippets.length,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        itemBuilder: (context, index) {
+                          final snippet = snippets[index];
+                          final isSelected = _selectedSnippet?.id == snippet.id;
+                          return Container(
+                            decoration: isSelected
+                                ? BoxDecoration(
+                                    color: const Color(0xFF1F6FEB).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFF58A6FF)),
+                                  )
+                                : null,
+                            child: _buildDismissibleSnippetCard(snippet, true),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Right Pane (60% Width) - Detail Playground & Editor
+        Expanded(
+          flex: 6,
+          child: Container(
+            color: const Color(0xFF0D1117),
+            padding: const EdgeInsets.all(20),
+            child: _selectedSnippet == null
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.touch_app_outlined, size: 48, color: Color(0xFF484F58)),
+                        SizedBox(height: 12),
+                        Text(
+                          'Select a snippet on the left to view or edit',
+                          style: TextStyle(color: Color(0xFF8B949E), fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  )
+                : SnippetEditorSheet(snippet: _selectedSnippet),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDismissibleSnippetCard(Snippet snippet, bool isLargeScreen) {
+    return Dismissible(
+      key: Key(snippet.id.toString()),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        HapticFeedback.mediumImpact();
+        if (!context.mounted) return false;
+        final shouldDelete = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF161B22),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: Color(0xFF30363D)),
+            ),
+            title: const Text('Delete Snippet?', style: TextStyle(color: Colors.white)),
+            content: Text(
+              'Are you sure you want to delete "${snippet.title}"?',
+              style: const TextStyle(color: Color(0xFF8B949E)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel', style: TextStyle(color: Color(0xFF8B949E))),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDA3633),
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        );
+        return shouldDelete ?? false;
+      },
+      onDismissed: (direction) async {
+        if (snippet.id != null) {
+          final messenger = ScaffoldMessenger.of(context);
+          await DatabaseService.deleteSnippet(snippet.id!);
+          if (isLargeScreen && _selectedSnippet?.id == snippet.id) {
+            setState(() => _selectedSnippet = null);
+          }
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Deleted "${snippet.title}"'),
+              backgroundColor: const Color(0xFFDA3633),
+            ),
+          );
+        }
+      },
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFDA3633).withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFDA3633).withValues(alpha: 0.5)),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text('Delete', style: TextStyle(color: Color(0xFFF85149), fontWeight: FontWeight.bold)),
+            SizedBox(width: 8),
+            Icon(Icons.delete_outline, color: Color(0xFFF85149)),
+          ],
+        ),
+      ),
+      child: _buildSnippetCard(snippet, isLargeScreen),
+    );
+  }
+
+  Widget _buildSnippetCard(Snippet snippet, bool isLargeScreen) {
     return Card(
       color: const Color(0xFF161B22),
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -402,22 +571,31 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => _handleSnippetCopy(snippet),
+        onTap: () {
+          if (isLargeScreen) {
+            setState(() => _selectedSnippet = snippet);
+          } else {
+            _handleSnippetCopy(snippet);
+          }
+        },
         onLongPress: () {
           HapticFeedback.mediumImpact();
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => SnippetEditorSheet(snippet: snippet),
-          );
+          if (isLargeScreen) {
+            setState(() => _selectedSnippet = snippet);
+          } else {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => SnippetEditorSheet(snippet: snippet),
+            );
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Card Header: Title + Pin Button + Use Count
               Row(
                 children: [
                   IconButton(
@@ -459,8 +637,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-
-              // Snippet Preview Body
               Text(
                 snippet.content,
                 maxLines: 2,
@@ -468,8 +644,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: const TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 12),
-
-              // Action Toolbar: Share + Copy Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -506,7 +680,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isLargeScreen) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -538,8 +712,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 8),
             Text(
               _searchQuery.isNotEmpty
-                  ? 'No results matching "$_searchQuery". Try a different search keyword.'
-                  : 'You have no snippets in the "$_selectedCategory" category yet.',
+                  ? 'No results matching "$_searchQuery".'
+                  : 'No snippets in category "$_selectedCategory".',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0xFF8B949E), fontSize: 13, height: 1.4),
             ),
@@ -556,19 +730,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Create New Snippet',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => const SnippetEditorSheet(),
-                );
-              },
+              onPressed: () => _handleNewSnippet(isLargeScreen),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class FocusSearchIntent extends Intent {
+  const FocusSearchIntent();
+}
+
+class CreateSnippetIntent extends Intent {
+  const CreateSnippetIntent();
+}
+
+class ClearSearchIntent extends Intent {
+  const ClearSearchIntent();
 }
