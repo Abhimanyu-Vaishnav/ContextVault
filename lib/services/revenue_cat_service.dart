@@ -57,7 +57,7 @@ class RevenueCatService {
   static Future<bool> makePurchase(Package package) async {
     if (!_isInitialized) return false;
     try {
-      PurchaseResult purchaseResult = await Purchases.purchasePackage(package);
+      PurchaseResult purchaseResult = await Purchases.purchase(PurchaseParams.package(package));
       return purchaseResult.customerInfo.entitlements.all['pro_access']?.isActive ?? false;
     } catch (e) {
       debugPrint("[RevenueCatService] Error making purchase: $e");
