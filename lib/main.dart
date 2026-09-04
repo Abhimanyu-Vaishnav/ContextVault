@@ -14,6 +14,14 @@ import 'views/guide/vault_guide_screen.dart';
 import 'views/templates/template_library_sheet.dart';
 import 'views/auth/biometric_lock_screen.dart';
 import 'views/settings/settings_sheet.dart';
+import 'services/overlay_service.dart';
+import 'views/paywall/quick_dock_overlay.dart';
+
+@pragma("vm:entry-point")
+void overlayMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const QuickDockOverlayApp());
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -704,6 +712,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     MaterialPageRoute(builder: (_) => const VaultGuideScreen()),
                   );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Color(0xFF58A6FF)),
+                tooltip: 'Toggle Edge Quick-Dock',
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  OverlayService.toggleOverlay(context);
                 },
               ),
               IconButton(

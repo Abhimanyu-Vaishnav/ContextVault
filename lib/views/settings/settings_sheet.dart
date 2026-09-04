@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
 import '../../services/revenue_cat_service.dart';
 import '../../services/database_service.dart';
+import '../../services/overlay_service.dart';
 import '../paywall/paywall_sheet.dart';
 
 class SettingsSheet extends StatefulWidget {
@@ -162,37 +163,64 @@ class _SettingsSheetState extends State<SettingsSheet> {
             else
               Column(
                 children: [
-                  // 1. Biometric Lock Section
-                  _buildSectionHeader('SECURITY'),
+                  // 1. Security & Edge Dock Section
+                  _buildSectionHeader('SYSTEM OVERLAYS & SECURITY'),
                   Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFF161B22),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: const Color(0xFF30363D)),
                     ),
-                    child: SwitchListTile(
-                      activeThumbColor: const Color(0xFF58A6FF),
-                      title: const Text(
-                        'Biometric App Lock',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.picture_in_picture_alt_rounded, color: Color(0xFF58A6FF)),
+                          title: const Text(
+                            'Edge Quick-Dock Overlay',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                          subtitle: const Text(
+                            'Floating edge bubble over any Android app (Pro Feature)',
+                            style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+                          ),
+                          trailing: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1F6FEB),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            onPressed: () {
+                              OverlayService.toggleOverlay(context);
+                            },
+                            child: const Text('Toggle Dock', style: TextStyle(fontSize: 12)),
+                          ),
                         ),
-                      ),
-                      subtitle: const Text(
-                        'Require fingerprint/PIN after 2 mins in background',
-                        style: TextStyle(
-                          color: Color(0xFF8B949E),
-                          fontSize: 12,
+                        const Divider(color: Color(0xFF21262D), height: 1),
+                        SwitchListTile(
+                          activeThumbColor: const Color(0xFF58A6FF),
+                          title: const Text(
+                            'Biometric App Lock',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Require fingerprint/PIN after 2 mins in background',
+                            style: TextStyle(
+                              color: Color(0xFF8B949E),
+                              fontSize: 12,
+                            ),
+                          ),
+                          secondary: const Icon(
+                            Icons.fingerprint,
+                            color: Color(0xFF58A6FF),
+                          ),
+                          value: _isBiometricsEnabled,
+                          onChanged: _toggleBiometrics,
                         ),
-                      ),
-                      secondary: const Icon(
-                        Icons.fingerprint,
-                        color: Color(0xFF58A6FF),
-                      ),
-                      value: _isBiometricsEnabled,
-                      onChanged: _toggleBiometrics,
+                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
