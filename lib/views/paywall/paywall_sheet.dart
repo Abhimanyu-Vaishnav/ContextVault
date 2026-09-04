@@ -282,7 +282,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                     Text(
                       _packages.isNotEmpty && _currentPackage != null
                           ? '${_currentPackage!.storeProduct.priceString} / yr'
-                          : '\$19.99 / yr',
+                          : '\$19.99 / yr (\$1.66/mo)',
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF8B949E),
@@ -372,7 +372,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
               Expanded(
                 flex: 2,
                 child: Text(
-                  'FREE',
+                  'FREE TIER',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFF8B949E),
@@ -382,9 +382,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
                 ),
               ),
               Expanded(
-                flex: 2,
+                flex: 3,
                 child: Text(
-                  'PRO',
+                  'CONTEXTVAULT PRO',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFF58A6FF),
@@ -399,23 +399,37 @@ class _PaywallSheetState extends State<PaywallSheet> {
 
           // Feature Rows
           _buildMatrixRow(
-            'Snippet Limit',
-            '25 Max',
-            'Unlimited',
+            'Snippet Storage',
+            '15 Snippets',
+            'Unlimited (Vault Sync)',
             isHighlight: true,
           ),
           const SizedBox(height: 8),
           _buildMatrixRow(
             'Dynamic Variables',
-            'Basic',
-            'All Engine',
+            'Date, Time, Clip',
+            'Dynamic Forms ({input:})',
             isHighlight: false,
           ),
           const SizedBox(height: 8),
           _buildMatrixRow(
-            'Edge Quick-Dock Overlay',
-            '✕',
-            'Included',
+            'Categories & Tagging',
+            '3 Tags',
+            'Unlimited Color Tags',
+            isHighlight: true,
+          ),
+          const SizedBox(height: 8),
+          _buildMatrixRow(
+            'Quick-Dock Edge Overlay',
+            'Disabled',
+            'Background Floating Dock',
+            isHighlight: false,
+          ),
+          const SizedBox(height: 8),
+          _buildMatrixRow(
+            'Data Export & Backup',
+            'Plain Text',
+            'Encrypted JSON / Backup',
             isHighlight: true,
           ),
         ],
@@ -437,7 +451,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
             feature,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -447,11 +461,11 @@ class _PaywallSheetState extends State<PaywallSheet> {
           child: Text(
             freeVal,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+            style: const TextStyle(color: Color(0xFF8B949E), fontSize: 11),
           ),
         ),
         Expanded(
-          flex: 2,
+          flex: 3,
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
             decoration: isHighlight
@@ -467,7 +481,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
                 color: isHighlight
                     ? const Color(0xFF58A6FF)
                     : const Color(0xFF3FB950),
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -480,7 +494,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
   Widget _buildPurchaseButton() {
     final pkg = _currentPackage;
     final priceLabel = pkg != null
-        ? '${pkg.storeProduct.priceString} (${_selectedPlan == BillingPlan.annual ? 'Annual' : 'Monthly'})'
+        ? '${pkg.storeProduct.priceString} / ${_selectedPlan == BillingPlan.annual ? 'year' : 'month'}'
         : _selectedPlan == BillingPlan.annual
         ? '\$19.99 / year'
         : '\$2.99 / month';
@@ -503,30 +517,46 @@ class _PaywallSheetState extends State<PaywallSheet> {
   }
 
   Widget _buildFooterLegal() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Column(
       children: [
-        TextButton(
-          onPressed: _handleRestore,
-          child: const Text(
-            'Restore Purchases',
-            style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            TextButton(
+              onPressed: _handleRestore,
+              child: const Text(
+                'Restore Purchases',
+                style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+              ),
+            ),
+            const Text('•', style: TextStyle(color: Color(0xFF30363D))),
+            TextButton(
+              onPressed: () {},
+              child: const Text(
+                'Terms',
+                style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+              ),
+            ),
+            const Text('•', style: TextStyle(color: Color(0xFF30363D))),
+            TextButton(
+              onPressed: () {},
+              child: const Text(
+                'Privacy',
+                style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+              ),
+            ),
+          ],
         ),
-        const Text('•', style: TextStyle(color: Color(0xFF30363D))),
+        const SizedBox(height: 4),
         TextButton(
-          onPressed: () {},
+          onPressed: () => Navigator.pop(context, false),
           child: const Text(
-            'Terms',
-            style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
-          ),
-        ),
-        const Text('•', style: TextStyle(color: Color(0xFF30363D))),
-        TextButton(
-          onPressed: () {},
-          child: const Text(
-            'Privacy',
-            style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+            'Continue with Free Plan',
+            style: TextStyle(
+              color: Color(0xFF8B949E),
+              fontSize: 13,
+              decoration: TextDecoration.underline,
+            ),
           ),
         ),
       ],

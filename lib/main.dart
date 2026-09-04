@@ -99,17 +99,6 @@ class _HomeScreenState extends State<HomeScreen> {
     Map<String, String> userInputs = {};
 
     if (vars.isNotEmpty) {
-      final isPro = await RevenueCatService.isProUser();
-      if (!isPro && mounted) {
-        final unlocked = await showModalBottomSheet<bool>(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (_) => const PaywallSheet(),
-        );
-        if (unlocked != true) return;
-      }
-
       final inputs = await _showVariableInputDialog(vars);
       if (inputs == null) return;
       userInputs = inputs;

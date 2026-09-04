@@ -74,31 +74,32 @@ class BackupService {
 
       final starterSnippets = [
         Snippet(
-          title: 'Client Meeting Follow-up',
-          category: 'Work',
-          content: 'Hi {input:Client_Name},\n\nThanks for speaking with us on {date} at {time}.\nNext Steps:\n1. {input:Action_Item_1}\n2. {input:Action_Item_2}\n\nBest regards,\n[Your Name]',
+          title: 'Current Timestamp',
+          category: 'Personal',
+          content: 'Logged at {date} - {time}',
           isPinned: true,
+        ),
+        Snippet(
+          title: 'Clipboard Quote',
+          category: 'Work',
+          content: '> {clipboard}',
+          isPinned: true,
+        ),
+        Snippet(
+          title: 'Meeting Note',
+          category: 'Work',
+          content: 'Follow-up regarding our discussion on {date}.',
+          isPinned: true,
+        ),
+        Snippet(
+          title: 'Client Follow-up',
+          category: 'Work',
+          content: 'Hi {input:Client_Name},\n\nThanks for speaking with us on {date} at {time}.\nNext Steps:\n1. {input:Action_Item_1}\n\nBest regards,\n[Your Name]',
         ),
         Snippet(
           title: 'Bug Report Template',
           category: 'Dev',
-          content: '🐛 **[Bug]: {input:Summary}**\n\n**Environment:** {input:OS_Device}\n**Date:** {date} {time}\n\n**Steps to Reproduce:**\n1. {input:Step_1}\n\n**Logs / Clipboard:**\n{clipboard}',
-          isPinned: true,
-        ),
-        Snippet(
-          title: 'Quick Invoice Note',
-          category: 'Templates',
-          content: 'Invoice #{input:Invoice_Number}\nClient: {input:Client_Name}\nDate: {date}\nAmount: \${input:Amount}\nPayment Method: {input:Payment_Method}',
-        ),
-        Snippet(
-          title: 'Quick Calendar Sync',
-          category: 'Personal',
-          content: 'Hey! Let\'s catch up on {date} around {time}. Does that work for you?',
-        ),
-        Snippet(
-          title: 'Code Review Response',
-          category: 'Dev',
-          content: 'LGTM! Tested on {date} at {time}.\nNote: {input:Review_Note}',
+          content: '🐛 **[Bug]: {input:Summary}**\n\n**Environment:** {input:OS_Device}\n**Date:** {date} {time}\n\n**Clipboard Log:**\n{clipboard}',
         ),
       ];
 
