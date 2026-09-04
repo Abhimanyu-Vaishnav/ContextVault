@@ -1,32 +1,39 @@
-### IntelliJ IDEA ###
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
 
-### Kotlin ###
-.kotlin
+# Flutter/Dart build & dependency artifacts
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+ephemeral/
 
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+# Android build & local settings
+android/.gradle/
+android/captures/
+android/gradleApp.setting
+android/local.properties
+android/key.properties
+*.jks
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
 .vscode/
 
-### Mac OS ###
-.DS_Store
+# Node / web
+node_modules/
