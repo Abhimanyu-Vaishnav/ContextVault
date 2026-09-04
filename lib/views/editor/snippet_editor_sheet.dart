@@ -345,6 +345,7 @@ class _SnippetEditorSheetState extends State<SnippetEditorSheet> {
                   _buildTagChip('{time}'),
                   _buildTagChip('{clipboard}'),
                   _buildTagChip('{input:variable}'),
+                  _buildTagChip('{list:steps}'),
                 ],
               ),
             ),
@@ -472,7 +473,7 @@ class _SnippetEditorSheetState extends State<SnippetEditorSheet> {
     final timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
     const clipboardStr = "[Clipboard Content]";
 
-    final regExp = RegExp(r'\{date\}|\{time\}|\{clipboard\}|\{input:[^}]+\}');
+    final regExp = RegExp(r'\{date\}|\{time\}|\{clipboard\}|\{input:[^}]+\}|\{list:[^}]+\}');
     final matches = regExp.allMatches(rawText);
 
     if (matches.isEmpty) {
@@ -526,6 +527,30 @@ class _SnippetEditorSheetState extends State<SnippetEditorSheet> {
                 'var: $varName',
                 style: const TextStyle(
                   color: Color(0xFF58A6FF),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ));
+      } else if (tag.startsWith('{list:')) {
+        final listName = tag.substring(6, tag.length - 1);
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF238636).withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFF3FB950).withValues(alpha: 0.5)),
+              ),
+              child: Text(
+                'list: $listName',
+                style: const TextStyle(
+                  color: Color(0xFF3FB950),
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),

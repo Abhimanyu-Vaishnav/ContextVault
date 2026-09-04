@@ -131,17 +131,21 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleSnippetCopy(Snippet snippet) async {
     HapticFeedback.lightImpact();
     final vars = TemplateParser.extractVariables(snippet.content);
+    final listVars = TemplateParser.extractListVariables(snippet.content);
     Map<String, String> userInputs = {};
+    Map<String, List<String>> userLists = {};
 
-    if (vars.isNotEmpty) {
-      final inputs = await _showVariableInputDialog(snippet, vars);
-      if (inputs == null) return;
-      userInputs = inputs;
+    if (vars.isNotEmpty || listVars.isNotEmpty) {
+      final res = await _showVariableInputDialog(snippet, vars, listVars);
+      if (res == null) return;
+      userInputs = res.inputs;
+      userLists = res.lists;
     }
 
     final parsedText = await TemplateParser.parseTemplate(
       snippet.content,
       userInputs: userInputs,
+      userLists: userLists,
     );
 
     await Clipboard.setData(ClipboardData(text: parsedText));
@@ -161,17 +165,21 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleShareSnippet(Snippet snippet) async {
     HapticFeedback.lightImpact();
     final vars = TemplateParser.extractVariables(snippet.content);
+    final listVars = TemplateParser.extractListVariables(snippet.content);
     Map<String, String> userInputs = {};
+    Map<String, List<String>> userLists = {};
 
-    if (vars.isNotEmpty) {
-      final inputs = await _showVariableInputDialog(snippet, vars);
-      if (inputs == null) return;
-      userInputs = inputs;
+    if (vars.isNotEmpty || listVars.isNotEmpty) {
+      final res = await _showVariableInputDialog(snippet, vars, listVars);
+      if (res == null) return;
+      userInputs = res.inputs;
+      userLists = res.lists;
     }
 
     final parsedText = await TemplateParser.parseTemplate(
       snippet.content,
       userInputs: userInputs,
+      userLists: userLists,
     );
 
     await Clipboard.setData(ClipboardData(text: parsedText));
@@ -188,22 +196,44 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<Map<String, String>?> _showVariableInputDialog(Snippet snippet, List<String> vars) async {
-    final controllers = {for (var v in vars) v: TextEditingController()};
+  Future<({Map<String, String> inputs, Map<String, List<String>> lists})?>
+      _showVariableInputDialog(
+    Snippet snippet,
+    List<String> vars,
+    List<String> listVars,
+  ) async {
+    final inputControllers = {for (var v in vars) v: TextEditingController()};
+    final listControllers = {
+      for (var lv in listVars) lv: [TextEditingController()]
+    };
     String livePreview = snippet.content;
 
-    Future<String> renderPreview(Map<String, String> currentInputs) async {
-      return await TemplateParser.parseTemplate(snippet.content, userInputs: currentInputs);
+    Future<String> renderPreview(
+      Map<String, String> currentInputs,
+      Map<String, List<String>> currentLists,
+    ) async {
+      return await TemplateParser.parseTemplate(
+        snippet.content,
+        userInputs: currentInputs,
+        userLists: currentLists,
+      );
     }
 
-    return showDialog<Map<String, String>>(
+    return showDialog<
+        ({Map<String, String> inputs, Map<String, List<String>> lists})>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
             void updatePreview() async {
-              final currentInputs = {for (var v in vars) v: controllers[v]!.text};
-              final rendered = await renderPreview(currentInputs);
+              final currentInputs = {
+                for (var v in vars) v: inputControllers[v]!.text
+              };
+              final currentLists = {
+                for (var lv in listVars)
+                  lv: listControllers[lv]!.map((c) => c.text).toList()
+              };
+              final rendered = await renderPreview(currentInputs, currentLists);
               if (ctx.mounted) {
                 setModalState(() {
                   livePreview = rendered;
@@ -223,84 +253,227 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Fill Variables: ${snippet.title}',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      'Fill Template: ${snippet.title}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ...vars.map((v) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6.0),
-                        child: TextField(
-                          controller: controllers[v],
-                          style: const TextStyle(color: Colors.white),
-                          onChanged: (_) => updatePreview(),
-                          decoration: InputDecoration(
-                            labelText: v,
-                            labelStyle: const TextStyle(color: Color(0xFF8B949E)),
-                            filled: true,
-                            fillColor: const Color(0xFF0D1117),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF30363D)),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF58A6FF)),
+              content: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.65,
+                ),
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Standard Input Fields
+                      ...vars.map((v) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6.0),
+                          child: TextField(
+                            controller: inputControllers[v],
+                            style: const TextStyle(color: Colors.white),
+                            onChanged: (_) => updatePreview(),
+                            decoration: InputDecoration(
+                              labelText: v,
+                              labelStyle:
+                                  const TextStyle(color: Color(0xFF8B949E)),
+                              filled: true,
+                              fillColor: const Color(0xFF0D1117),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFF30363D)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFF58A6FF)),
+                              ),
                             ),
                           ),
+                        );
+                      }),
+
+                      // Dynamic Repeating List Sections
+                      ...listVars.map((lv) {
+                        final ctrlList = listControllers[lv]!;
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0D1117),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF30363D)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.format_list_numbered,
+                                      size: 16, color: Color(0xFF58A6FF)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Dynamic List: $lv',
+                                    style: const TextStyle(
+                                      color: Color(0xFF58A6FF),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              ...ctrlList.asMap().entries.map((entry) {
+                                final idx = entry.key;
+                                final ctrl = entry.value;
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 6.0),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextField(
+                                          controller: ctrl,
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                          onChanged: (_) => updatePreview(),
+                                          decoration: InputDecoration(
+                                            hintText: 'Step ${idx + 1}...',
+                                            hintStyle: const TextStyle(
+                                                color: Color(0xFF484F58)),
+                                            filled: true,
+                                            fillColor: const Color(0xFF161B22),
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 10),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              borderSide: const BorderSide(
+                                                  color: Color(0xFF30363D)),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              borderSide: const BorderSide(
+                                                  color: Color(0xFF58A6FF)),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (ctrlList.length > 1)
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.remove_circle_outline,
+                                            color: Color(0xFFDA3633),
+                                            size: 20,
+                                          ),
+                                          onPressed: () {
+                                            HapticFeedback.lightImpact();
+                                            setModalState(() {
+                                              ctrl.dispose();
+                                              ctrlList.removeAt(idx);
+                                            });
+                                            updatePreview();
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                              const SizedBox(height: 4),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF58A6FF),
+                                  side: const BorderSide(
+                                      color: Color(0xFF58A6FF)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                ),
+                                icon: const Icon(Icons.add, size: 16),
+                                label: const Text(
+                                  '+ Add Step',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                onPressed: () {
+                                  HapticFeedback.selectionClick();
+                                  setModalState(() {
+                                    ctrlList.add(TextEditingController());
+                                  });
+                                  updatePreview();
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+
+                      const SizedBox(height: 12),
+                      const Text(
+                        'LIVE RENDERED OUTPUT',
+                        style: TextStyle(
+                          color: Color(0xFF58A6FF),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
                         ),
-                      );
-                    }),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'LIVE RENDERED OUTPUT',
-                      style: TextStyle(
-                        color: Color(0xFF58A6FF),
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0D1117),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF30363D)),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D1117),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFF30363D)),
+                        ),
+                        child: Text(
+                          livePreview,
+                          style: const TextStyle(
+                              color: Color(0xFFC9D1D9),
+                              fontSize: 13,
+                              height: 1.4),
+                        ),
                       ),
-                      child: Text(
-                        livePreview,
-                        style: const TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, height: 1.4),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, null),
-                  child: const Text('Cancel', style: TextStyle(color: Color(0xFF8B949E))),
+                  child: const Text('Cancel',
+                      style: TextStyle(color: Color(0xFF8B949E))),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF238636),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () {
-                    final result = {for (var v in vars) v: controllers[v]!.text};
-                    Navigator.pop(ctx, result);
+                    final inputsResult = {
+                      for (var v in vars) v: inputControllers[v]!.text
+                    };
+                    final listsResult = {
+                      for (var lv in listVars)
+                        lv: listControllers[lv]!.map((c) => c.text).toList()
+                    };
+                    Navigator.pop(ctx,
+                        (inputs: inputsResult, lists: listsResult));
                   },
                   child: const Text(
                     'Copy Rendered Context',

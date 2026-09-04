@@ -80,9 +80,9 @@ class BackupService {
           isPinned: true,
         ),
         Snippet(
-          title: 'Bug Report Triage',
+          title: 'Bug Report Template',
           category: 'Dev',
-          content: '[BUG-{date}] Issue: {input:IssueSummary}\nReproducible: Yes\nReported at: {time}\nSystem Note: {clipboard}',
+          content: '🐛 **[Bug]: {input:Issue_Summary}**\n\n**Environment:** {input:OS_Device}\n**Timestamp:** {date} {time}\n**Steps to Reproduce:**\n{list:Steps}\n\n**Expected Result:** {input:Expected_Result}\n**Clipboard Log:**\n{clipboard}',
           isPinned: true,
         ),
         Snippet(
