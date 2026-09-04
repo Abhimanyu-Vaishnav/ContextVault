@@ -41,6 +41,9 @@ dependencies:
   flutter_riverpod: ^2.6.1
   sqflite: ^2.4.3
   path: ^1.9.1
+  flutter_secure_storage: ^9.2.4
+  local_auth: ^2.3.0
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:

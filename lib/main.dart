@@ -11,6 +11,7 @@ import 'views/paywall/paywall_sheet.dart';
 import 'views/editor/snippet_editor_sheet.dart';
 import 'views/guide/vault_guide_screen.dart';
 import 'views/templates/template_library_sheet.dart';
+import 'views/auth/biometric_lock_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,8 +45,37 @@ void main() async {
   runApp(const ContextVaultApp());
 }
 
-class ContextVaultApp extends StatelessWidget {
+class ContextVaultApp extends StatefulWidget {
   const ContextVaultApp({super.key});
+
+  @override
+  State<ContextVaultApp> createState() => _ContextVaultAppState();
+}
+
+class _ContextVaultAppState extends State<ContextVaultApp> with WidgetsBindingObserver {
+  bool _isLocked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Lock app when sent to background or Android Recent Apps switcher
+      if (!_isLocked) {
+        setState(() => _isLocked = true);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +83,11 @@ class ContextVaultApp extends StatelessWidget {
       title: 'ContextVault',
       theme: AppTheme.darkTheme,
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
+      home: _isLocked
+          ? BiometricLockScreen(
+              onUnlocked: () => setState(() => _isLocked = false),
+            )
+          : const HomeScreen(),
     );
   }
 }
