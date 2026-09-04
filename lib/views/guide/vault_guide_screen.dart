@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../views/editor/snippet_editor_sheet.dart';
+import '../editor/snippet_editor_sheet.dart';
 
 class VaultGuideScreen extends StatelessWidget {
   const VaultGuideScreen({super.key});
