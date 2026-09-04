@@ -22,12 +22,22 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "startQuickAccessNotification" -> {
-                    showPersistentNotification()
-                    result.success(true)
+                    try {
+                        showPersistentNotification()
+                        result.success(true)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        result.success(false)
+                    }
                 }
                 "stopQuickAccessNotification" -> {
-                    stopPersistentNotification()
-                    result.success(true)
+                    try {
+                        stopPersistentNotification()
+                        result.success(true)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        result.success(false)
+                    }
                 }
                 else -> result.notImplemented()
             }
