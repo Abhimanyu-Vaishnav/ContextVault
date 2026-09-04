@@ -8,6 +8,7 @@ import 'services/revenue_cat_service.dart';
 import 'services/quick_access_service.dart';
 import 'views/paywall/paywall_sheet.dart';
 import 'views/editor/snippet_editor_sheet.dart';
+import 'views/guide/vault_guide_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -96,6 +97,17 @@ class _HomeScreenState extends State<HomeScreen> {
     Map<String, String> userInputs = {};
 
     if (vars.isNotEmpty) {
+      final isPro = await RevenueCatService.isProUser();
+      if (!isPro && mounted) {
+        final unlocked = await showModalBottomSheet<bool>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => const PaywallSheet(),
+        );
+        if (unlocked != true) return;
+      }
+
       final inputs = await _showVariableInputDialog(vars);
       if (inputs == null) return;
       userInputs = inputs;
@@ -284,6 +296,17 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.help_outline, color: Color(0xFF8B949E)),
+                tooltip: 'Vault Guide & Syntax',
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const VaultGuideScreen()),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.bolt, color: Color(0xFF58A6FF)),
                 tooltip: 'Unlock Pro',
