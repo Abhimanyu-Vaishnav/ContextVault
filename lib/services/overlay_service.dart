@@ -77,8 +77,8 @@ class OverlayService {
         flag: OverlayFlag.defaultFlag,
         visibility: NotificationVisibility.visibilitySecret,
         positionGravity: PositionGravity.right,
-        height: WindowSize.matchParent,
-        width: 140,
+        height: 65,
+        width: 55,
       );
       print("DEBUG_OVERLAY: Overlay launched successfully");
       return true;
@@ -97,8 +97,8 @@ class OverlayService {
         flag: OverlayFlag.defaultFlag,
         visibility: NotificationVisibility.visibilitySecret,
         positionGravity: PositionGravity.right,
-        height: 180,
-        width: 140,
+        height: 65,
+        width: 55,
       );
       debugPrint("[OverlayService] Floating Edge Dock activated.");
     } catch (e) {
