@@ -3,15 +3,21 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 class RevenueCatService {
   // Yaha dashboard se copy ki hui Test Store public key paste karein
   static const _apiKeyAndroid = "test_rVYLVfTXpbrozVIFUsYtdsZNSha";
   static bool _isInitialized = false;
+  static bool _sandboxProOverride = false;
 
   static bool get isInitialized => _isInitialized;
+  static bool get isSandboxProActive => _sandboxProOverride;
 
   static Future<void> init() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      _sandboxProOverride = prefs.getBool('judge_sandbox_pro_override') ?? false;
       if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
 
       await Purchases.setLogLevel(LogLevel.debug);
@@ -26,8 +32,18 @@ class RevenueCatService {
     }
   }
 
-  // Check if user has active Pro Entitlement with verification check
+  /// Toggle persistent Sandbox Pro Override for judges/demo evaluation
+  static Future<bool> toggleSandboxProOverride() async {
+    _sandboxProOverride = !_sandboxProOverride;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('judge_sandbox_pro_override', _sandboxProOverride);
+    debugPrint("[RevenueCatService] Judge Sandbox Pro Override set to: $_sandboxProOverride");
+    return _sandboxProOverride;
+  }
+
+  // Check if user has active Pro Entitlement with verification check + sandbox override
   static Future<bool> isProUser() async {
+    if (_sandboxProOverride) return true;
     if (!_isInitialized) return false;
     try {
       CustomerInfo customerInfo = await Purchases.getCustomerInfo();

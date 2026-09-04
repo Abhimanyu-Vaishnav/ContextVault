@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../services/revenue_cat_service.dart';
 
@@ -155,36 +156,59 @@ class _PaywallSheetState extends State<PaywallSheet> {
             ),
             const SizedBox(height: 18),
 
-            // Header Banner Icon & Title
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1F6FEB).withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFF58A6FF).withValues(alpha: 0.3),
+            // Header Banner Icon & Title with Double-Tap Judge Override
+            GestureDetector(
+              onDoubleTap: () async {
+                HapticFeedback.heavyImpact();
+                final messenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
+                final isProActive = await RevenueCatService.toggleSandboxProOverride();
+                if (!mounted) return;
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isProActive
+                          ? '⚡ Judge Mode: Pro Status ACTIVE (All Limits Unlocked)'
+                          : 'Judge Mode: Free Status Restored',
+                    ),
+                    backgroundColor: isProActive
+                        ? const Color(0xFF238636)
+                        : const Color(0xFFD29922),
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+                navigator.pop(true);
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1F6FEB).withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF58A6FF).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.bolt,
+                      size: 28,
+                      color: Color(0xFF58A6FF),
                     ),
                   ),
-                  child: const Icon(
-                    Icons.bolt,
-                    size: 28,
-                    color: Color(0xFF58A6FF),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'ContextVault Pro',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'ContextVault Pro',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -562,6 +586,44 @@ class _PaywallSheetState extends State<PaywallSheet> {
               child: const Text(
                 'Privacy',
                 style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton(
+              onPressed: () async {
+                HapticFeedback.heavyImpact();
+                final messenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
+                final isProActive = await RevenueCatService.toggleSandboxProOverride();
+                if (!mounted) return;
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isProActive
+                          ? '⚡ Judge Mode: Pro Status ACTIVE (All Limits Unlocked)'
+                          : 'Judge Mode: Free Status Restored',
+                    ),
+                    backgroundColor: isProActive
+                        ? const Color(0xFF238636)
+                        : const Color(0xFFD29922),
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+                navigator.pop(true);
+              },
+              child: Text(
+                RevenueCatService.isSandboxProActive
+                    ? '⚡ Judge Mode: Pro Status ACTIVE (Tap to Disable)'
+                    : '🛠️ Judge / Demo Mode Sandbox Unlock',
+                style: const TextStyle(
+                  color: Color(0xFFD29922),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
