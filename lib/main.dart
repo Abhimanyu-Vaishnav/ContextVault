@@ -10,6 +10,7 @@ import 'services/backup_service.dart';
 import 'views/paywall/paywall_sheet.dart';
 import 'views/editor/snippet_editor_sheet.dart';
 import 'views/guide/vault_guide_screen.dart';
+import 'views/templates/template_library_sheet.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -379,6 +380,19 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.library_books, color: Color(0xFF58A6FF)),
+                tooltip: 'Browse 150+ Templates',
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const TemplateLibrarySheet(),
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.import_export, color: Color(0xFF8B949E)),
                 tooltip: 'Backup & Restore JSON',

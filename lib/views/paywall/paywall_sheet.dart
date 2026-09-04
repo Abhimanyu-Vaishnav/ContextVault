@@ -399,16 +399,23 @@ class _PaywallSheetState extends State<PaywallSheet> {
 
           // Feature Rows
           _buildMatrixRow(
-            'Snippet Storage',
-            '15 Snippets',
+            'Snippet Limit',
+            '15 Max',
             'Unlimited (Vault Sync)',
             isHighlight: true,
           ),
           const SizedBox(height: 8),
           _buildMatrixRow(
+            'Template Vault',
+            '10 Essentials',
+            '150+ Pro Library',
+            isHighlight: true,
+          ),
+          const SizedBox(height: 8),
+          _buildMatrixRow(
             'Dynamic Variables',
-            'Date, Time, Clip',
-            'Dynamic Forms ({input:})',
+            'Standard',
+            'Multi-Field Forms ({input:})',
             isHighlight: false,
           ),
           const SizedBox(height: 8),

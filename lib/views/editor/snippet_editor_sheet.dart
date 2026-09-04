@@ -5,6 +5,7 @@ import '../../core/constants/feature_manager.dart';
 import '../../models/snippet.dart';
 import '../../services/database_service.dart';
 import '../paywall/paywall_sheet.dart';
+import '../templates/template_library_sheet.dart';
 
 class SnippetEditorSheet extends StatefulWidget {
   final Snippet? snippet;
@@ -88,6 +89,16 @@ class _SnippetEditorSheetState extends State<SnippetEditorSheet> {
 
       if (!canCreate) {
         if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '⚡ Free Vault Limit Reached (15/15). Upgrade to Pro for unlimited storage.',
+              ),
+              backgroundColor: Color(0xFFD29922),
+              duration: Duration(seconds: 3),
+            ),
+          );
+
           final unlocked = await showModalBottomSheet<bool>(
             context: context,
             isScrollControlled: true,
@@ -215,14 +226,47 @@ class _SnippetEditorSheetState extends State<SnippetEditorSheet> {
             const SizedBox(height: 8),
 
             // Quick-Insert Starter Templates
-            const Text(
-              'STARTER TEMPLATES',
-              style: TextStyle(
-                color: Color(0xFF8B949E),
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'STARTER TEMPLATES',
+                  style: TextStyle(
+                    color: Color(0xFF8B949E),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => TemplateLibrarySheet(
+                        onSelectTemplate: (tpl) {
+                          _applyPredefinedTemplate(tpl.title, tpl.content);
+                        },
+                      ),
+                    );
+                  },
+                  child: const Row(
+                    children: [
+                      Icon(Icons.library_books, size: 12, color: Color(0xFF58A6FF)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Browse 150+ Vault',
+                        style: TextStyle(
+                          color: Color(0xFF58A6FF),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             SingleChildScrollView(
