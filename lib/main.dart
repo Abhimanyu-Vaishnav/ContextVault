@@ -711,7 +711,10 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.symmetric(vertical: 6),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        side: const BorderSide(color: Color(0xFF30363D)),
+        side: BorderSide(
+          color: snippet.isPinned ? const Color(0xFFD29922).withValues(alpha: 0.5) : const Color(0xFF30363D),
+          width: snippet.isPinned ? 1.2 : 1.0,
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
@@ -778,6 +781,142 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Used ${snippet.useCount}x',
                       style: const TextStyle(color: Color(0xFF8B949E), fontSize: 11),
                     ),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, size: 18, color: Color(0xFF8B949E)),
+                    color: const Color(0xFF161B22),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Color(0xFF30363D)),
+                    ),
+                    onSelected: (value) async {
+                      HapticFeedback.lightImpact();
+                      if (value == 'edit') {
+                        if (isLargeScreen) {
+                          setState(() => _selectedSnippet = snippet);
+                        } else {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => SnippetEditorSheet(snippet: snippet),
+                          );
+                        }
+                      } else if (value == 'pin') {
+                        await DatabaseService.togglePin(snippet);
+                      } else if (value == 'duplicate') {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final copySnippet = Snippet(
+                          title: 'Copy of ${snippet.title}',
+                          content: snippet.content,
+                          category: snippet.category,
+                          isPinned: false,
+                        );
+                        await DatabaseService.saveSnippet(copySnippet);
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('Duplicated "${snippet.title}"'),
+                            backgroundColor: const Color(0xFF238636),
+                          ),
+                        );
+                      } else if (value == 'delete') {
+                        if (snippet.id != null) {
+                          if (!context.mounted) return;
+                          final messenger = ScaffoldMessenger.of(context);
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              backgroundColor: const Color(0xFF161B22),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                side: const BorderSide(color: Color(0xFF30363D)),
+                              ),
+                              title: const Text('Delete Snippet?', style: TextStyle(color: Colors.white)),
+                              content: Text(
+                                'Are you sure you want to delete "${snippet.title}"?',
+                                style: const TextStyle(color: Color(0xFF8B949E)),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Cancel', style: TextStyle(color: Color(0xFF8B949E))),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFDA3633),
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await DatabaseService.deleteSnippet(snippet.id!);
+                            if (isLargeScreen && _selectedSnippet?.id == snippet.id) {
+                              setState(() => _selectedSnippet = null);
+                            }
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Deleted "${snippet.title}"'),
+                                backgroundColor: const Color(0xFFDA3633),
+                              ),
+                            );
+                          }
+                        }
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined, size: 16, color: Color(0xFF58A6FF)),
+                            SizedBox(width: 8),
+                            Text('Edit Snippet', style: TextStyle(color: Colors.white, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'pin',
+                        child: Row(
+                          children: [
+                            Icon(
+                              snippet.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                              size: 16,
+                              color: const Color(0xFFD29922),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              snippet.isPinned ? 'Unpin' : 'Pin to Top',
+                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'duplicate',
+                        child: Row(
+                          children: [
+                            Icon(Icons.copy_all, size: 16, color: Color(0xFF3FB950)),
+                            SizedBox(width: 8),
+                            Text('Duplicate', style: TextStyle(color: Colors.white, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(height: 1),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, size: 16, color: Color(0xFFF85149)),
+                            SizedBox(width: 8),
+                            Text('Delete', style: TextStyle(color: Color(0xFFF85149), fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

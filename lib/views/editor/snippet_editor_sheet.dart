@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../models/snippet.dart';
 import '../../services/database_service.dart';
 import '../paywall/paywall_sheet.dart';
@@ -107,6 +108,54 @@ class _SnippetEditorSheetState extends State<SnippetEditorSheet> {
     if (mounted) Navigator.pop(context);
   }
 
+  Future<void> _delete() async {
+    if (widget.snippet?.id == null) return;
+    HapticFeedback.mediumImpact();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: Color(0xFF30363D)),
+        ),
+        title: const Text('Delete Snippet?', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Are you sure you want to permanently delete "${widget.snippet!.title}"?',
+          style: const TextStyle(color: Color(0xFF8B949E)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF8B949E))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDA3633),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      await DatabaseService.deleteSnippet(widget.snippet!.id!);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Deleted "${widget.snippet!.title}"'),
+            backgroundColor: const Color(0xFFDA3633),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -155,8 +204,11 @@ class _SnippetEditorSheetState extends State<SnippetEditorSheet> {
                   icon: Icon(
                     _isPinned ? Icons.push_pin : Icons.push_pin_outlined,
                   ),
-                  color: _isPinned ? Colors.amber : const Color(0xFF8B949E),
-                  onPressed: () => setState(() => _isPinned = !_isPinned),
+                  color: _isPinned ? const Color(0xFFD29922) : const Color(0xFF8B949E),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    setState(() => _isPinned = !_isPinned);
+                  },
                 ),
               ],
             ),
@@ -274,6 +326,27 @@ class _SnippetEditorSheetState extends State<SnippetEditorSheet> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
+
+            // In-Editor Delete Button (If Editing Existing Snippet)
+            if (widget.snippet?.id != null) ...[
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFDA3633),
+                  side: const BorderSide(color: Color(0xFFDA3633)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text(
+                  'Delete Snippet',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                onPressed: _delete,
+              ),
+            ],
           ],
         ),
       ),
@@ -355,7 +428,6 @@ class _SnippetEditorSheetState extends State<SnippetEditorSheet> {
     final timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
     const clipboardStr = "[Clipboard Content]";
 
-    // Regex pattern to extract tags: {date}, {time}, {clipboard}, or {input:...}
     final regExp = RegExp(r'\{date\}|\{time\}|\{clipboard\}|\{input:[^}]+\}');
     final matches = regExp.allMatches(rawText);
 
