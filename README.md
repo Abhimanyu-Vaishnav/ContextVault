@@ -58,16 +58,16 @@ graph TD
         Biometrics[Android Biometric Hardware Prompt]
     end
 
-    UI -->|Triggers Copy| Parser
-    Parser -->|Regex Token Match| RegexEngine
-    RegexEngine -->|Detects {input:} / {list:}| FormEngine
-    FormEngine -->|Hydrated Text String| Clipboard
+    UI -->|"Triggers Copy"| Parser
+    Parser -->|"Regex Token Match"| RegexEngine
+    RegexEngine -->|"Detects {input:} / {list:}"| FormEngine
+    FormEngine -->|"Hydrated Text String"| Clipboard
     
-    UI -->|Reads / Writes Snippets| DB
-    Settings -->|Persists AES Keys & UUID| KeyStore
-    Settings -->|Check Entitlements & PPP Pricing| RevenueCat
-    Settings -->|Vault Lock Verification| AuthService
-    AuthService -->|Hardware Prompt| Biometrics
+    UI -->|"Reads / Writes Snippets"| DB
+    Settings -->|"Persists AES Keys & UUID"| KeyStore
+    Settings -->|"Check Entitlements & PPP Pricing"| RevenueCat
+    Settings -->|"Vault Lock Verification"| AuthService
+    AuthService -->|"Hardware Prompt"| Biometrics
 ```
 
 ### Dynamic Token Resolution Lifecycle
@@ -84,7 +84,7 @@ sequenceDiagram
 
     User->>Parser: Tap "Copy Snippet"
     Parser->>Parser: Scan string with r'\{input:([^}]+)\}' & r'\{list:([^}]+)\}'
-    alt Has Dynamic Tokens ({input:} or {list:})
+    alt Has Dynamic Tokens
         Parser->>Dialog: Construct Dynamic Modal (TextFields & Multi-Step List Builders)
         User->>Dialog: Enter variable values & tap "+ Add Step"
         Dialog->>Engine: Pass User Inputs & List Arrays
