@@ -50,7 +50,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('🎉 Welcome to ContextVault Pro! All features unlocked.'),
+            content: Text(
+              '🎉 Welcome to ContextVault Pro! All features unlocked.',
+            ),
             backgroundColor: Color(0xFF238636),
             duration: Duration(seconds: 3),
           ),
@@ -71,7 +73,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
           Navigator.pop(context, true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Purchases successfully restored! Welcome back Pro user.'),
+              content: Text(
+                'Purchases successfully restored! Welcome back Pro user.',
+              ),
               backgroundColor: Color(0xFF238636),
             ),
           );
@@ -146,11 +150,17 @@ class _PaywallSheetState extends State<PaywallSheet> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1F6FEB).withOpacity(0.15),
+                    color: const Color(0xFF1F6FEB).withValues(alpha: 0.15),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF58A6FF).withOpacity(0.3)),
+                    border: Border.all(
+                      color: const Color(0xFF58A6FF).withValues(alpha: 0.3),
+                    ),
                   ),
-                  child: const Icon(Icons.bolt, size: 28, color: Color(0xFF58A6FF)),
+                  child: const Icon(
+                    Icons.bolt,
+                    size: 28,
+                    color: Color(0xFF58A6FF),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -168,7 +178,11 @@ class _PaywallSheetState extends State<PaywallSheet> {
             const Text(
               'Supercharge your power-user workflow with unlimited templates & floating overlays.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFF8B949E), fontSize: 13, height: 1.4),
+              style: TextStyle(
+                color: Color(0xFF8B949E),
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -223,7 +237,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                   border: _selectedPlan == BillingPlan.annual
-                      ? Border.all(color: const Color(0xFF58A6FF).withOpacity(0.5))
+                      ? Border.all(
+                          color: const Color(0xFF58A6FF).withValues(alpha: 0.5),
+                        )
                       : null,
                 ),
                 child: Column(
@@ -243,7 +259,10 @@ class _PaywallSheetState extends State<PaywallSheet> {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF238636),
                             borderRadius: BorderRadius.circular(10),
@@ -264,7 +283,10 @@ class _PaywallSheetState extends State<PaywallSheet> {
                       _packages.isNotEmpty && _currentPackage != null
                           ? '${_currentPackage!.storeProduct.priceString} / yr'
                           : '\$19.99 / yr',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF8B949E)),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF8B949E),
+                      ),
                     ),
                   ],
                 ),
@@ -286,7 +308,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                   border: _selectedPlan == BillingPlan.monthly
-                      ? Border.all(color: const Color(0xFF58A6FF).withOpacity(0.5))
+                      ? Border.all(
+                          color: const Color(0xFF58A6FF).withValues(alpha: 0.5),
+                        )
                       : null,
                 ),
                 child: Column(
@@ -306,7 +330,10 @@ class _PaywallSheetState extends State<PaywallSheet> {
                       _packages.isNotEmpty && _packages.length > 1
                           ? '${_packages.last.storeProduct.priceString} / mo'
                           : '\$2.99 / mo',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF8B949E)),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF8B949E),
+                      ),
                     ),
                   ],
                 ),
@@ -371,24 +398,48 @@ class _PaywallSheetState extends State<PaywallSheet> {
           const Divider(color: Color(0xFF21262D), height: 16),
 
           // Feature Rows
-          _buildMatrixRow('Snippet Limit', '25 Max', 'Unlimited', isHighlight: true),
+          _buildMatrixRow(
+            'Snippet Limit',
+            '25 Max',
+            'Unlimited',
+            isHighlight: true,
+          ),
           const SizedBox(height: 8),
-          _buildMatrixRow('Dynamic Variables', 'Basic', 'All Engine', isHighlight: false),
+          _buildMatrixRow(
+            'Dynamic Variables',
+            'Basic',
+            'All Engine',
+            isHighlight: false,
+          ),
           const SizedBox(height: 8),
-          _buildMatrixRow('Edge Quick-Dock Overlay', '✕', 'Included', isHighlight: true),
+          _buildMatrixRow(
+            'Edge Quick-Dock Overlay',
+            '✕',
+            'Included',
+            isHighlight: true,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMatrixRow(String feature, String freeVal, String proVal, {required bool isHighlight}) {
+  Widget _buildMatrixRow(
+    String feature,
+    String freeVal,
+    String proVal, {
+    required bool isHighlight,
+  }) {
     return Row(
       children: [
         Expanded(
           flex: 3,
           child: Text(
             feature,
-            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         Expanded(
@@ -405,7 +456,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
             padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
             decoration: isHighlight
                 ? BoxDecoration(
-                    color: const Color(0xFF1F6FEB).withOpacity(0.15),
+                    color: const Color(0xFF1F6FEB).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   )
                 : null,
@@ -413,7 +464,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
               proVal,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isHighlight ? const Color(0xFF58A6FF) : const Color(0xFF3FB950),
+                color: isHighlight
+                    ? const Color(0xFF58A6FF)
+                    : const Color(0xFF3FB950),
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -428,7 +481,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
     final pkg = _currentPackage;
     final priceLabel = pkg != null
         ? '${pkg.storeProduct.priceString} (${_selectedPlan == BillingPlan.annual ? 'Annual' : 'Monthly'})'
-        : _selectedPlan == BillingPlan.annual ? '\$19.99 / year' : '\$2.99 / month';
+        : _selectedPlan == BillingPlan.annual
+        ? '\$19.99 / year'
+        : '\$2.99 / month';
 
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
@@ -437,7 +492,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         elevation: 4,
-        shadowColor: const Color(0xFF238636).withOpacity(0.4),
+        shadowColor: const Color(0xFF238636).withValues(alpha: 0.4),
       ),
       onPressed: () => _handlePurchase(pkg),
       child: Text(
