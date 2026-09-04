@@ -125,21 +125,21 @@ Monetization is driven by native **RevenueCat SDK (v10.x)** integration with aut
 ### RevenueCat Purchasing Power Parity (PPP) Flow
 ```mermaid
 flowchart TD
-    A[Launch PaywallSheet] --> B{Purchases.getOfferings Available?}
-    B -- Yes (Play Store Live) --> C[Extract package.storeProduct.priceString]
-    B -- No (Offline / Review / Sandbox) --> D[Query CurrencyHelper.getRegionalPrice]
-    D --> E{Detect Device Locale / CountryCode}
-    E -- India (IN / hi_IN / en_IN) --> F[Display ₹299 / mo | ₹1,999 / yr - Save 45%]
-    E -- Eurozone (DE / FR / ES / IT) --> G[Display €3.49 / mo | €22.99 / yr]
-    E -- United Kingdom (GB) --> H[Display £2.99 / mo | £19.99 / yr]
-    E -- US / Global Default --> I[Display $3.99 / mo | $24.99 / yr - Save 48%]
-    C --> J[Render Dynamic Paywall UI]
+    A["Launch PaywallSheet"] --> B{"Purchases.getOfferings Available?"}
+    B -- Yes (Play Store Live) --> C["Extract package.storeProduct.priceString"]
+    B -- No (Offline / Review / Sandbox) --> D["Query CurrencyHelper.getRegionalPrice"]
+    D --> E{"Detect Device Locale / CountryCode"}
+    E -- India (IN / hi_IN / en_IN) --> F["Display ₹299 / mo | ₹1,999 / yr - Save 45%"]
+    E -- Eurozone (DE / FR / ES / IT) --> G["Display €3.49 / mo | €22.99 / yr"]
+    E -- United Kingdom (GB) --> H["Display £2.99 / mo | £19.99 / yr"]
+    E -- US / Global Default --> I["Display $3.99 / mo | $24.99 / yr - Save 48%"]
+    C --> J["Render Dynamic Paywall UI"]
     F --> J
     G --> J
     H --> J
     I --> J
-    J --> K[User Executes Purchase / Restore]
-    K --> L[RevenueCat CustomerInfoUpdateListener Broadcasts Active Entitlement]
+    J --> K["User Executes Purchase / Restore"]
+    K --> L["RevenueCat CustomerInfoUpdateListener Broadcasts Active Entitlement"]
 ```
 
 ---
