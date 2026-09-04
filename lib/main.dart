@@ -100,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Map<String, String> userInputs = {};
 
     if (vars.isNotEmpty) {
-      final inputs = await _showVariableInputDialog(vars);
+      final inputs = await _showVariableInputDialog(snippet, vars);
       if (inputs == null) return;
       userInputs = inputs;
     }
@@ -130,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Map<String, String> userInputs = {};
 
     if (vars.isNotEmpty) {
-      final inputs = await _showVariableInputDialog(vars);
+      final inputs = await _showVariableInputDialog(snippet, vars);
       if (inputs == null) return;
       userInputs = inputs;
     }
@@ -154,70 +154,130 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<Map<String, String>?> _showVariableInputDialog(List<String> vars) async {
+  Future<Map<String, String>?> _showVariableInputDialog(Snippet snippet, List<String> vars) async {
     final controllers = {for (var v in vars) v: TextEditingController()};
+    String livePreview = snippet.content;
+
+    Future<String> renderPreview(Map<String, String> currentInputs) async {
+      return await TemplateParser.parseTemplate(snippet.content, userInputs: currentInputs);
+    }
+
     return showDialog<Map<String, String>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF161B22),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFF30363D)),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.bolt, color: Color(0xFF58A6FF), size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Fill Dynamic Variables',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: vars.map((v) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6.0),
-              child: TextField(
-                controller: controllers[v],
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: v,
-                  labelStyle: const TextStyle(color: Color(0xFF8B949E)),
-                  filled: true,
-                  fillColor: const Color(0xFF0D1117),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF30363D)),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            void updatePreview() async {
+              final currentInputs = {for (var v in vars) v: controllers[v]!.text};
+              final rendered = await renderPreview(currentInputs);
+              if (ctx.mounted) {
+                setModalState(() {
+                  livePreview = rendered;
+                });
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF161B22),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFF30363D)),
+              ),
+              title: Row(
+                children: [
+                  const Icon(Icons.bolt, color: Color(0xFF58A6FF), size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Fill Variables: ${snippet.title}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF58A6FF)),
-                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ...vars.map((v) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6.0),
+                        child: TextField(
+                          controller: controllers[v],
+                          style: const TextStyle(color: Colors.white),
+                          onChanged: (_) => updatePreview(),
+                          decoration: InputDecoration(
+                            labelText: v,
+                            labelStyle: const TextStyle(color: Color(0xFF8B949E)),
+                            filled: true,
+                            fillColor: const Color(0xFF0D1117),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFF30363D)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFF58A6FF)),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'LIVE RENDERED OUTPUT',
+                      style: TextStyle(
+                        color: Color(0xFF58A6FF),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D1117),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF30363D)),
+                      ),
+                      child: Text(
+                        livePreview,
+                        style: const TextStyle(color: Color(0xFFC9D1D9), fontSize: 13, height: 1.4),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, null),
+                  child: const Text('Cancel', style: TextStyle(color: Color(0xFF8B949E))),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF238636),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () {
+                    final result = {for (var v in vars) v: controllers[v]!.text};
+                    Navigator.pop(ctx, result);
+                  },
+                  child: const Text(
+                    'Copy Rendered Context',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, null),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF8B949E))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF238636),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              final result = {for (var v in vars) v: controllers[v]!.text};
-              Navigator.pop(ctx, result);
-            },
-            child: const Text('Inject & Copy'),
-          ),
-        ],
-      ),
+          },
+        );
+      },
     );
   }
 

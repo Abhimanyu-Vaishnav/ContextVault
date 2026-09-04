@@ -74,32 +74,31 @@ class BackupService {
 
       final starterSnippets = [
         Snippet(
+          title: 'Quick Client Proposal',
+          category: 'Work',
+          content: 'Hi {input:ClientName}, here is the breakdown for {input:ProjectScope}. We can wrap this up by {date}. Let me know if you\'re ready to proceed!',
+          isPinned: true,
+        ),
+        Snippet(
+          title: 'Bug Report Triage',
+          category: 'Dev',
+          content: '[BUG-{date}] Issue: {input:IssueSummary}\nReproducible: Yes\nReported at: {time}\nSystem Note: {clipboard}',
+          isPinned: true,
+        ),
+        Snippet(
           title: 'Current Timestamp',
           category: 'Personal',
           content: 'Logged at {date} - {time}',
-          isPinned: true,
         ),
         Snippet(
           title: 'Clipboard Quote',
           category: 'Work',
           content: '> {clipboard}',
-          isPinned: true,
         ),
         Snippet(
           title: 'Meeting Note',
           category: 'Work',
           content: 'Follow-up regarding our discussion on {date}.',
-          isPinned: true,
-        ),
-        Snippet(
-          title: 'Client Follow-up',
-          category: 'Work',
-          content: 'Hi {input:Client_Name},\n\nThanks for speaking with us on {date} at {time}.\nNext Steps:\n1. {input:Action_Item_1}\n\nBest regards,\n[Your Name]',
-        ),
-        Snippet(
-          title: 'Bug Report Template',
-          category: 'Dev',
-          content: '🐛 **[Bug]: {input:Summary}**\n\n**Environment:** {input:OS_Device}\n**Date:** {date} {time}\n\n**Clipboard Log:**\n{clipboard}',
         ),
       ];
 
