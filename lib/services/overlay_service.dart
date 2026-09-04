@@ -53,27 +53,34 @@ class OverlayService {
       return false;
     }
 
-    // Check overlay permission
-    final permissionGranted = await isPermissionGranted();
-    if (!permissionGranted) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please grant "Display over other apps" permission in Android Settings.'),
-            backgroundColor: Color(0xFF58A6FF),
-          ),
-        );
-      }
-      await requestPermission();
+    final bool isGranted = await FlutterOverlayWindow.isPermissionGranted();
+    print("DEBUG_OVERLAY: Permission Status -> $isGranted");
+
+    if (!isGranted) {
+      final bool? requested = await FlutterOverlayWindow.requestPermission();
+      print("DEBUG_OVERLAY: Permission Requested -> $requested");
       return false;
     }
 
-    final isOverlayActive = await FlutterOverlayWindow.isActive();
-    if (isOverlayActive) {
-      await closeOverlay();
+    final bool isActive = await FlutterOverlayWindow.isActive();
+    print("DEBUG_OVERLAY: Is Active -> $isActive");
+
+    if (isActive) {
+      await FlutterOverlayWindow.closeOverlay();
+      print("DEBUG_OVERLAY: Overlay closed");
       return false;
     } else {
-      await showOverlay();
+      await FlutterOverlayWindow.showOverlay(
+        enableDrag: true,
+        overlayTitle: "ContextVault Quick-Dock",
+        overlayContent: "Quick access active",
+        flag: OverlayFlag.defaultFlag,
+        visibility: NotificationVisibility.visibilitySecret,
+        positionGravity: PositionGravity.right,
+        height: WindowSize.matchParent,
+        width: 140,
+      );
+      print("DEBUG_OVERLAY: Overlay launched successfully");
       return true;
     }
   }
