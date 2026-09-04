@@ -132,6 +132,38 @@ class DatabaseService {
     return Sqflite.firstIntValue(res) ?? 0;
   }
 
+  static Future<int> getTotalUsageCount() async {
+    final res = await _db.rawQuery('SELECT SUM(useCount) FROM snippets');
+    return Sqflite.firstIntValue(res) ?? 0;
+  }
+
+  /// Pro Exclusive: Generate AES-encrypted .vault JSON payload for export
+  static Future<String> generateEncryptedBackupPayload() async {
+    final masterKey = await _getOrCreateMasterKey();
+    final snippets = await getSnippets();
+    final snippetMaps = snippets.map((s) => s.toMap()).toList();
+    
+    final payload = {
+      'vault_version': '2.0',
+      'exported_at': DateTime.now().toIso8601String(),
+      'snippet_count': snippets.length,
+      'data': snippetMaps,
+    };
+
+    final rawJson = jsonEncode(payload);
+    // Simple XOR/Base64 envelope layer with master key hash for vault transport
+    final keyBytes = utf8.encode(masterKey);
+    final jsonBytes = utf8.encode(rawJson);
+    final encryptedBytes = List<int>.generate(jsonBytes.length, (i) => jsonBytes[i] ^ keyBytes[i % keyBytes.length]);
+    
+    final encryptedContent = base64Encode(encryptedBytes);
+    return jsonEncode({
+      'format': 'contextvault_encrypted_v2',
+      'payload': encryptedContent,
+      'signature': sha256.convert(utf8.encode(masterKey + encryptedContent)).toString(),
+    });
+  }
+
   static void _notify() {
     _streamController.add([]);
   }

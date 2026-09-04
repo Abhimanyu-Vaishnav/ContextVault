@@ -20,6 +20,9 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 
+# Ignore missing Google Play Core references in Flutter engine (deferred components)
+-dontwarn com.google.android.play.core.**
+
 # Preserve native methods
 -keepclasseswithmembernames class * {
     native <methods>;
