@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../services/revenue_cat_service.dart';
+import '../../../services/coupon_service.dart';
 
 enum BillingPlan { annual, monthly }
 
@@ -17,6 +18,35 @@ class _PaywallSheetState extends State<PaywallSheet> {
   BillingPlan _selectedPlan = BillingPlan.annual;
   List<Package> _packages = [];
 
+  String _annualPriceText = "₹1,999 / yr";
+  String _monthlyPriceText = "₹299 / mo";
+  String _annualSubText = "₹166 / mo — Save 45%";
+  int _savingsPercentage = 45;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateFallbackPricing();
+  }
+
+  void _updateFallbackPricing() {
+    // Default to Indian Rupee (₹) unless device locale specifically indicates USD/other currency
+    final locale = View.of(context).platformDispatcher.locale;
+    final isUS = locale.countryCode == 'US';
+
+    if (isUS) {
+      _annualPriceText = "\$24.99 / yr";
+      _monthlyPriceText = "\$3.99 / mo";
+      _annualSubText = "\$2.08 / mo";
+      _savingsPercentage = 48;
+    } else {
+      _annualPriceText = "₹1,999 / yr";
+      _monthlyPriceText = "₹299 / mo";
+      _annualSubText = "₹166 / mo — Save 45%";
+      _savingsPercentage = 45;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +59,28 @@ class _PaywallSheetState extends State<PaywallSheet> {
       setState(() {
         _packages = pkgs;
         _isLoading = false;
+
+        // If RevenueCat returns live store product strings, update state dynamically
+        if (_packages.isNotEmpty) {
+          final annualPkg = _packages.firstWhere(
+            (p) => p.packageType == PackageType.annual,
+            orElse: () => _packages.first,
+          );
+          final monthlyPkg = _packages.firstWhere(
+            (p) => p.packageType == PackageType.monthly,
+            orElse: () => _packages.last,
+          );
+
+          if (annualPkg.storeProduct.priceString.trim().isNotEmpty &&
+              !annualPkg.storeProduct.priceString.contains('null')) {
+            _annualPriceText = "${annualPkg.storeProduct.priceString} / yr";
+          }
+
+          if (monthlyPkg.storeProduct.priceString.trim().isNotEmpty &&
+              !monthlyPkg.storeProduct.priceString.contains('null')) {
+            _monthlyPriceText = "${monthlyPkg.storeProduct.priceString} / mo";
+          }
+        }
       });
     }
   }
@@ -48,6 +100,14 @@ class _PaywallSheetState extends State<PaywallSheet> {
             content: Text('🎉 Welcome to ContextVault Pro! All features unlocked.'),
             backgroundColor: Color(0xFF238636),
             duration: Duration(seconds: 3),
+          ),
+        );
+      } else if (result.pending) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.errorMessage ?? 'Payment Pending'),
+            backgroundColor: const Color(0xFFD29922),
+            duration: const Duration(seconds: 4),
           ),
         );
       } else if (!result.cancelled && result.errorMessage != null) {
@@ -77,8 +137,8 @@ class _PaywallSheetState extends State<PaywallSheet> {
   Future<void> _handleRestore() async {
     setState(() => _isLoading = true);
     try {
-      final customerInfo = await Purchases.restorePurchases();
-      final isPro = customerInfo.entitlements.all['pro_access']?.isActive ?? false;
+      final customerInfo = await RevenueCatService.restorePurchases();
+      final isPro = customerInfo?.entitlements.all['pro_access']?.isActive ?? false;
 
       if (mounted) {
         setState(() => _isLoading = false);
@@ -95,7 +155,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No active Pro subscription found to restore.'),
+              content: Text('No active Pro subscriptions found for this Google account.'),
               backgroundColor: Color(0xFFD29922),
             ),
           );
@@ -139,47 +199,27 @@ class _PaywallSheetState extends State<PaywallSheet> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Top Grabber Handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF484F58),
-                  borderRadius: BorderRadius.circular(2),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Top Grabber Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF484F58),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 18),
+              const SizedBox(height: 18),
 
-            // Header Banner Icon & Title with Double-Tap Judge Override
-            GestureDetector(
-              onDoubleTap: () async {
-                HapticFeedback.heavyImpact();
-                final messenger = ScaffoldMessenger.of(context);
-                final navigator = Navigator.of(context);
-                final isProActive = await RevenueCatService.toggleSandboxProOverride();
-                if (!mounted) return;
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isProActive
-                          ? '⚡ Judge Mode: Pro Status ACTIVE (All Limits Unlocked)'
-                          : 'Judge Mode: Free Status Restored',
-                    ),
-                    backgroundColor: isProActive
-                        ? const Color(0xFF238636)
-                        : const Color(0xFFD29922),
-                    duration: const Duration(seconds: 3),
-                  ),
-                );
-                navigator.pop(true);
-              },
-              child: Row(
+              // Header Banner Icon & Title
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
@@ -209,44 +249,160 @@ class _PaywallSheetState extends State<PaywallSheet> {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Supercharge your power-user workflow with unlimited templates & floating overlays.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF8B949E),
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Billing Cycle Toggle Bar
-            _buildPlanToggle(),
-            const SizedBox(height: 20),
-
-            // Free vs Pro Feature Comparison Matrix
-            _buildComparisonMatrix(),
-            const SizedBox(height: 24),
-
-            // CTA Purchase Button
-            if (_isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: CircularProgressIndicator(color: Color(0xFF58A6FF)),
+              const SizedBox(height: 6),
+              const Text(
+                'Supercharge your power-user workflow with unlimited templates & floating overlays.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF8B949E),
+                  fontSize: 13,
+                  height: 1.4,
                 ),
-              )
-            else
-              _buildPurchaseButton(),
-            const SizedBox(height: 16),
+              ),
+              const SizedBox(height: 20),
 
-            // Legal & Restoration Footer
-            _buildFooterLegal(),
-          ],
+              // Billing Cycle Toggle Bar with Spring Animated Glow
+              _buildPlanToggle(),
+              const SizedBox(height: 20),
+
+              // Free vs Pro Feature Comparison Matrix with Icons
+              _buildComparisonMatrix(),
+              const SizedBox(height: 24),
+
+              // CTA Purchase Button
+              if (_isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator.adaptive(),
+                  ),
+                )
+              else
+                _buildPurchaseButton(),
+              const SizedBox(height: 16),
+
+              // Clean Legal & Restoration Footer
+              _buildFooterLegal(),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  void _showPromoCodeModal() {
+    final controller = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF161B22),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (modalContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(modalContext).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Redeem Promo Code',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Color(0xFF8B949E)),
+                    onPressed: () => Navigator.pop(modalContext),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Enter an official promo or evaluation code to unlock ContextVault Pro privileges.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF8B949E)),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  hintText: 'Enter code (e.g. SHIPATHON2026)',
+                  hintStyle: const TextStyle(color: Color(0xFF484F58)),
+                  filled: true,
+                  fillColor: const Color(0xFF0D1117),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFF30363D)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFF58A6FF)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF238636),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () async {
+                  final code = controller.text.trim();
+                  if (code.isEmpty) return;
+
+                  final messenger = ScaffoldMessenger.of(context);
+                  final rootNavigator = Navigator.of(context);
+                  final modalNav = Navigator.of(modalContext);
+
+                  final result = await CouponService.redeemCode(code);
+
+                  if (result.success) {
+                    HapticFeedback.heavyImpact();
+                    modalNav.pop();
+                    rootNavigator.pop(true);
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(result.message),
+                        backgroundColor: const Color(0xFF238636),
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(result.message),
+                        backgroundColor: const Color(0xFFDA3633),
+                      ),
+                    );
+                  }
+                },
+                child: const Text(
+                  'Apply Promo Code',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -263,20 +419,34 @@ class _PaywallSheetState extends State<PaywallSheet> {
           // Annual Option
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _selectedPlan = BillingPlan.annual),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _selectedPlan = BillingPlan.annual);
+              },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: _selectedPlan == BillingPlan.annual
                       ? const Color(0xFF21262D)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
-                  border: _selectedPlan == BillingPlan.annual
-                      ? Border.all(
-                          color: const Color(0xFF58A6FF).withValues(alpha: 0.5),
-                        )
-                      : null,
+                  border: Border.all(
+                    color: _selectedPlan == BillingPlan.annual
+                        ? const Color(0xFF58A6FF)
+                        : Colors.transparent,
+                    width: 1.5,
+                  ),
+                  boxShadow: _selectedPlan == BillingPlan.annual
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF58A6FF).withValues(alpha: 0.25),
+                            blurRadius: 12,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : [],
                 ),
                 child: Column(
                   children: [
@@ -303,9 +473,9 @@ class _PaywallSheetState extends State<PaywallSheet> {
                             color: const Color(0xFF238636),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Text(
-                            'Save 40%',
-                            style: TextStyle(
+                          child: Text(
+                            'Save $_savingsPercentage%',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -316,12 +486,11 @@ class _PaywallSheetState extends State<PaywallSheet> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _packages.isNotEmpty && _currentPackage != null
-                          ? '${_currentPackage!.storeProduct.priceString} / yr'
-                          : '\$19.99 / yr (\$1.66/mo)',
+                      "$_annualPriceText ($_annualSubText)",
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF8B949E),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -334,20 +503,34 @@ class _PaywallSheetState extends State<PaywallSheet> {
           // Monthly Option
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _selectedPlan = BillingPlan.monthly),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _selectedPlan = BillingPlan.monthly);
+              },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: _selectedPlan == BillingPlan.monthly
                       ? const Color(0xFF21262D)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
-                  border: _selectedPlan == BillingPlan.monthly
-                      ? Border.all(
-                          color: const Color(0xFF58A6FF).withValues(alpha: 0.5),
-                        )
-                      : null,
+                  border: Border.all(
+                    color: _selectedPlan == BillingPlan.monthly
+                        ? const Color(0xFF58A6FF)
+                        : Colors.transparent,
+                    width: 1.5,
+                  ),
+                  boxShadow: _selectedPlan == BillingPlan.monthly
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF58A6FF).withValues(alpha: 0.25),
+                            blurRadius: 12,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : [],
                 ),
                 child: Column(
                   children: [
@@ -363,12 +546,11 @@ class _PaywallSheetState extends State<PaywallSheet> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _packages.isNotEmpty && _packages.length > 1
-                          ? '${_packages.last.storeProduct.priceString} / mo'
-                          : '\$2.99 / mo',
+                      _monthlyPriceText,
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF8B949E),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -510,23 +692,40 @@ class _PaywallSheetState extends State<PaywallSheet> {
         Expanded(
           flex: 3,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
             decoration: isHighlight
                 ? BoxDecoration(
                     color: const Color(0xFF1F6FEB).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   )
                 : null,
-            child: Text(
-              proVal,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isHighlight
-                    ? const Color(0xFF58A6FF)
-                    : const Color(0xFF3FB950),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isHighlight ? Icons.check_circle_rounded : Icons.star_rounded,
+                  size: 13,
+                  color: isHighlight
+                      ? const Color(0xFF58A6FF)
+                      : const Color(0xFF3FB950),
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    proVal,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isHighlight
+                          ? const Color(0xFF58A6FF)
+                          : const Color(0xFF3FB950),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -536,11 +735,8 @@ class _PaywallSheetState extends State<PaywallSheet> {
 
   Widget _buildPurchaseButton() {
     final pkg = _currentPackage;
-    final priceLabel = pkg != null
-        ? '${pkg.storeProduct.priceString} / ${_selectedPlan == BillingPlan.annual ? 'year' : 'month'}'
-        : _selectedPlan == BillingPlan.annual
-        ? '\$19.99 / year'
-        : '\$2.99 / month';
+    final selectedPriceText =
+        _selectedPlan == BillingPlan.annual ? _annualPriceText : _monthlyPriceText;
 
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
@@ -553,7 +749,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
       ),
       onPressed: () => _handlePurchase(pkg),
       child: Text(
-        'Unlock Pro for $priceLabel',
+        'Unlock Pro for $selectedPriceText',
         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
       ),
     );
@@ -562,6 +758,25 @@ class _PaywallSheetState extends State<PaywallSheet> {
   Widget _buildFooterLegal() {
     return Column(
       children: [
+        TextButton(
+          onPressed: _showPromoCodeModal,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.card_giftcard, size: 16, color: Color(0xFF58A6FF)),
+              SizedBox(width: 6),
+              Text(
+                'Have a Promo Code? Redeem',
+                style: TextStyle(
+                  color: Color(0xFF58A6FF),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -586,44 +801,6 @@ class _PaywallSheetState extends State<PaywallSheet> {
               child: const Text(
                 'Privacy',
                 style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextButton(
-              onPressed: () async {
-                HapticFeedback.heavyImpact();
-                final messenger = ScaffoldMessenger.of(context);
-                final navigator = Navigator.of(context);
-                final isProActive = await RevenueCatService.toggleSandboxProOverride();
-                if (!mounted) return;
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isProActive
-                          ? '⚡ Judge Mode: Pro Status ACTIVE (All Limits Unlocked)'
-                          : 'Judge Mode: Free Status Restored',
-                    ),
-                    backgroundColor: isProActive
-                        ? const Color(0xFF238636)
-                        : const Color(0xFFD29922),
-                    duration: const Duration(seconds: 3),
-                  ),
-                );
-                navigator.pop(true);
-              },
-              child: Text(
-                RevenueCatService.isSandboxProActive
-                    ? '⚡ Judge Mode: Pro Status ACTIVE (Tap to Disable)'
-                    : '🛠️ Judge / Demo Mode Sandbox Unlock',
-                style: const TextStyle(
-                  color: Color(0xFFD29922),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
               ),
             ),
           ],

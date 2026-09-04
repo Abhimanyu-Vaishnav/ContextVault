@@ -7,11 +7,13 @@ import 'services/database_service.dart';
 import 'services/revenue_cat_service.dart';
 import 'services/quick_access_service.dart';
 import 'services/backup_service.dart';
+import 'services/auth_service.dart';
 import 'views/paywall/paywall_sheet.dart';
 import 'views/editor/snippet_editor_sheet.dart';
 import 'views/guide/vault_guide_screen.dart';
 import 'views/templates/template_library_sheet.dart';
 import 'views/auth/biometric_lock_screen.dart';
+import 'views/settings/settings_sheet.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,11 +56,13 @@ class ContextVaultApp extends StatefulWidget {
 
 class _ContextVaultAppState extends State<ContextVaultApp> with WidgetsBindingObserver {
   bool _isLocked = false;
+  DateTime? _pausedAt;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    RevenueCatService.proStatusNotifier.addListener(_onProStatusChanged);
     RevenueCatService.addCustomerInfoListener((customerInfo) {
       if (mounted) {
         setState(() {}); // Re-render UI dynamically across the entire app
@@ -66,18 +70,36 @@ class _ContextVaultAppState extends State<ContextVaultApp> with WidgetsBindingOb
     });
   }
 
+  void _onProStatusChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
+    RevenueCatService.proStatusNotifier.removeListener(_onProStatusChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      // Lock app when sent to background or Android Recent Apps switcher
-      if (!_isLocked) {
-        setState(() => _isLocked = true);
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.paused) {
+      _pausedAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      // Check if user turned Biometrics ON in Settings
+      final bioEnabled = await AuthService.isBiometricEnabled();
+      if (!bioEnabled) return;
+
+      if (_pausedAt != null) {
+        final elapsed = DateTime.now().difference(_pausedAt!);
+        // Grace period of 2 minutes (120 seconds)
+        if (elapsed.inSeconds >= 120) {
+          if (!_isLocked) {
+            setState(() => _isLocked = true);
+          }
+        }
       }
     }
   }
@@ -630,9 +652,12 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 const Icon(Icons.shield_outlined, color: Color(0xFF58A6FF), size: 22),
                 const SizedBox(width: 8),
-                const Text(
-                  'ContextVault',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                const Flexible(
+                  child: Text(
+                    'ContextVault',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 if (isLargeScreen) ...[
                   const SizedBox(width: 16),
@@ -678,6 +703,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const VaultGuideScreen()),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings, color: Color(0xFF8B949E)),
+                tooltip: 'Vault Settings',
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const SettingsSheet(),
                   );
                 },
               ),
@@ -805,7 +843,21 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           itemBuilder: (context, index) {
             final snippet = snippets[index];
-            return _buildDismissibleSnippetCard(snippet, false);
+            return TweenAnimationBuilder<double>(
+              duration: Duration(milliseconds: 250 + (index * 40).clamp(0, 300)),
+              tween: Tween<double>(begin: 0.0, end: 1.0),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, (1.0 - value) * 16),
+                    child: child,
+                  ),
+                );
+              },
+              child: _buildDismissibleSnippetCard(snippet, false),
+            );
           },
         );
       },
