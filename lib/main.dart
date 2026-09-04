@@ -6,6 +6,7 @@ import 'models/snippet.dart';
 import 'services/database_service.dart';
 import 'services/revenue_cat_service.dart';
 import 'services/quick_access_service.dart';
+import 'services/backup_service.dart';
 import 'views/paywall/paywall_sheet.dart';
 import 'views/editor/snippet_editor_sheet.dart';
 import 'views/guide/vault_guide_screen.dart';
@@ -16,7 +17,8 @@ void main() async {
   // 1. Resilient DatabaseService Init
   try {
     await DatabaseService.init();
-    debugPrint("[Main] DatabaseService initialized.");
+    await BackupService.seedStarterKit();
+    debugPrint("[Main] DatabaseService & Starter Kit initialized.");
   } catch (e, stack) {
     debugPrint("[Main] DatabaseService init failed: $e\n$stack");
   }
@@ -229,6 +231,98 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _showBackupDialog(BuildContext context) async {
+    HapticFeedback.lightImpact();
+    final jsonString = await BackupService.exportSnippetsJson();
+
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF30363D)),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.import_export, color: Color(0xFF58A6FF), size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Backup & Portability',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Export database snippets to JSON or restore from a backup file.',
+              style: TextStyle(color: Color(0xFF8B949E), fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F6FEB),
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.copy, size: 16),
+                label: const Text('Export JSON to Clipboard (Free)'),
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: jsonString));
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('All snippets exported to clipboard as JSON!'),
+                        backgroundColor: Color(0xFF238636),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFD29922),
+                  side: const BorderSide(color: Color(0xFFD29922)),
+                ),
+                icon: const Icon(Icons.lock_outline, size: 16),
+                label: const Text('Restore from JSON (Pro Feature)'),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  final isPro = await RevenueCatService.isProUser();
+                  if (!isPro && context.mounted) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const PaywallSheet(),
+                    );
+                  } else if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Pro unlocked! Paste JSON in snippet editor to restore.'),
+                        backgroundColor: Color(0xFF238636),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaWidth = MediaQuery.of(context).size.width;
@@ -296,6 +390,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.import_export, color: Color(0xFF8B949E)),
+                tooltip: 'Backup & Restore JSON',
+                onPressed: () => _showBackupDialog(context),
+              ),
               IconButton(
                 icon: const Icon(Icons.help_outline, color: Color(0xFF8B949E)),
                 tooltip: 'Vault Guide & Syntax',
