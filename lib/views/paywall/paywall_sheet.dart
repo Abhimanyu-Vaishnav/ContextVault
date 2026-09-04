@@ -34,30 +34,42 @@ class _PaywallSheetState extends State<PaywallSheet> {
 
   Future<void> _handlePurchase(Package? package) async {
     setState(() => _isLoading = true);
-    bool isSuccess = false;
 
     if (package != null) {
-      isSuccess = await RevenueCatService.makePurchase(package);
-    } else {
-      // Demo / Sandbox fallback if offerings are empty
-      await Future.delayed(const Duration(milliseconds: 600));
-      isSuccess = true;
-    }
-
-    if (mounted) {
+      final result = await RevenueCatService.makePurchase(package);
+      if (!mounted) return;
       setState(() => _isLoading = false);
-      if (isSuccess) {
+
+      if (result.success) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              '🎉 Welcome to ContextVault Pro! All features unlocked.',
-            ),
+            content: Text('🎉 Welcome to ContextVault Pro! All features unlocked.'),
             backgroundColor: Color(0xFF238636),
             duration: Duration(seconds: 3),
           ),
         );
+      } else if (!result.cancelled && result.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Purchase error: ${result.errorMessage}'),
+            backgroundColor: const Color(0xFFDA3633),
+          ),
+        );
       }
+    } else {
+      // Sandbox fallback if offerings are empty
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🎉 Welcome to ContextVault Pro! All features unlocked.'),
+          backgroundColor: Color(0xFF238636),
+          duration: Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -65,7 +77,7 @@ class _PaywallSheetState extends State<PaywallSheet> {
     setState(() => _isLoading = true);
     try {
       final customerInfo = await Purchases.restorePurchases();
-      final isPro = customerInfo.entitlements.all['pro']?.isActive ?? false;
+      final isPro = customerInfo.entitlements.all['pro_access']?.isActive ?? false;
 
       if (mounted) {
         setState(() => _isLoading = false);

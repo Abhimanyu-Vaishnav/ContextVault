@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class RevenueCatService {
@@ -60,15 +61,30 @@ class RevenueCatService {
     return [];
   }
 
-  // Purchase package
-  static Future<bool> makePurchase(Package package) async {
-    if (!_isInitialized) return false;
+  // Listener callback stream for real-time entitlement updates
+  static void addCustomerInfoListener(Function(CustomerInfo) onCustomerInfoUpdated) {
+    if (!_isInitialized) return;
+    Purchases.addCustomerInfoUpdateListener(onCustomerInfoUpdated);
+  }
+
+  // Purchase package with silent cancellation handling
+  static Future<({bool success, String? errorMessage, bool cancelled})> makePurchase(Package package) async {
+    if (!_isInitialized) return (success: false, errorMessage: 'RevenueCat SDK not initialized.', cancelled: false);
     try {
       PurchaseResult purchaseResult = await Purchases.purchase(PurchaseParams.package(package));
-      return purchaseResult.customerInfo.entitlements.all['pro_access']?.isActive ?? false;
+      final isPro = purchaseResult.customerInfo.entitlements.all['pro_access']?.isActive ?? false;
+      return (success: isPro, errorMessage: null, cancelled: false);
+    } on PlatformException catch (e) {
+      final errorCode = PurchasesErrorHelper.getErrorCode(e);
+      if (errorCode == PurchasesErrorCode.purchaseCancelledError) {
+        debugPrint("[RevenueCatService] Purchase cancelled by user.");
+        return (success: false, errorMessage: null, cancelled: true);
+      }
+      debugPrint("[RevenueCatService] Platform error making purchase: $e");
+      return (success: false, errorMessage: e.message ?? 'Purchase failed.', cancelled: false);
     } catch (e) {
       debugPrint("[RevenueCatService] Error making purchase: $e");
-      return false;
+      return (success: false, errorMessage: e.toString(), cancelled: false);
     }
   }
 }

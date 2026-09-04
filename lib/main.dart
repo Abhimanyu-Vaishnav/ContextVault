@@ -59,6 +59,11 @@ class _ContextVaultAppState extends State<ContextVaultApp> with WidgetsBindingOb
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    RevenueCatService.addCustomerInfoListener((customerInfo) {
+      if (mounted) {
+        setState(() {}); // Re-render UI dynamically across the entire app
+      }
+    });
   }
 
   @override

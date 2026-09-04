@@ -133,6 +133,32 @@ class _TemplateLibrarySheetState extends State<TemplateLibrarySheet> {
               ),
             ],
           ),
+          // Profession Starter Packs Bar
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildStarterPackChip(
+                  context,
+                  '💻 Developer Superpack',
+                  'Dev',
+                  const Color(0xFF1F6FEB),
+                ),
+                _buildStarterPackChip(
+                  context,
+                  '💼 Freelancer & Agency',
+                  'Sales',
+                  const Color(0xFF238636),
+                ),
+                _buildStarterPackChip(
+                  context,
+                  '🚀 Product & Support',
+                  'Support',
+                  const Color(0xFFD29922),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 10),
 
           // Category Chips Filter
@@ -303,6 +329,43 @@ class _TemplateLibrarySheetState extends State<TemplateLibrarySheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStarterPackChip(
+    BuildContext context,
+    String label,
+    String categoryFilter,
+    Color accentColor,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: ActionChip(
+        avatar: Icon(Icons.flash_on, size: 14, color: accentColor),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFF161B22),
+        side: BorderSide(color: accentColor.withValues(alpha: 0.5)),
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          setState(() {
+            _selectedCategory = categoryFilter;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Loaded $label into explorer!'),
+              backgroundColor: accentColor,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
       ),
     );
   }
