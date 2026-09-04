@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/constants/feature_manager.dart';
 import '../../models/snippet.dart';
 import '../../services/database_service.dart';
 import '../paywall/paywall_sheet.dart';
-import '../../services/revenue_cat_service.dart';
 
 class SnippetEditorSheet extends StatefulWidget {
   final Snippet? snippet;
@@ -84,9 +84,9 @@ class _SnippetEditorSheetState extends State<SnippetEditorSheet> {
 
     if (widget.snippet == null) {
       final count = await DatabaseService.getSnippetCount();
-      final isPro = await RevenueCatService.isProUser();
+      final canCreate = await FeatureManager.canCreateSnippet(count);
 
-      if (count >= 25 && !isPro) {
+      if (!canCreate) {
         if (mounted) {
           final unlocked = await showModalBottomSheet<bool>(
             context: context,
