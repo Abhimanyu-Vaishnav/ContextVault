@@ -11,9 +11,32 @@ import 'views/editor/snippet_editor_sheet.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await DatabaseService.init();
-  await RevenueCatService.init();
-  await QuickAccessService.startQuickAccessNotification();
+
+  // 1. Resilient DatabaseService Init
+  try {
+    await DatabaseService.init();
+    debugPrint("[Main] DatabaseService initialized.");
+  } catch (e, stack) {
+    debugPrint("[Main] DatabaseService init failed: $e\n$stack");
+  }
+
+  // 2. Resilient RevenueCatService Init
+  try {
+    await RevenueCatService.init();
+    debugPrint("[Main] RevenueCatService initialized.");
+  } catch (e, stack) {
+    debugPrint("[Main] RevenueCatService init failed: $e\n$stack");
+  }
+
+  // 3. Resilient QuickAccessService Init
+  try {
+    await QuickAccessService.startQuickAccessNotification();
+    debugPrint("[Main] QuickAccessService started.");
+  } catch (e, stack) {
+    debugPrint("[Main] QuickAccessService start failed: $e\n$stack");
+  }
+
+  // Guarantee UI render regardless of background service state
   runApp(const ContextVaultApp());
 }
 
