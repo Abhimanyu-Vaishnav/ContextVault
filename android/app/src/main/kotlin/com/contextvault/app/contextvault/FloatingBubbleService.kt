@@ -557,7 +557,7 @@ class FloatingBubbleService : Service() {
                                 if (bubbleView?.windowToken != null) {
                                     windowManager?.removeView(bubbleView)
                                 }
-                            } catch (_) {}
+                            } catch (e: Exception) {}
                         }
                     })?.start()
             }
@@ -594,7 +594,7 @@ class FloatingBubbleService : Service() {
                             if (panelView?.windowToken != null) {
                                 windowManager?.removeView(panelView)
                             }
-                        } catch (_) {}
+                        } catch (e: Exception) {}
 
                         if (bubbleView?.windowToken == null && windowManager != null && !isHiddenByForeground) {
                             try {
@@ -610,7 +610,7 @@ class FloatingBubbleService : Service() {
                                     ?.setDuration(150)
                                     ?.setListener(null)
                                     ?.start()
-                            } catch (_) {}
+                            } catch (e: Exception) {}
                         }
                     }
                 })?.start()
