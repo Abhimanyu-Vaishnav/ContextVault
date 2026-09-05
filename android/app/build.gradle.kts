@@ -41,7 +41,12 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            val hasReleaseStore = keystorePropertiesFile.exists() && keystoreProperties["storeFile"] != null
+            signingConfig = if (hasReleaseStore) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
