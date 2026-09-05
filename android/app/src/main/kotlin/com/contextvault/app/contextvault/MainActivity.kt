@@ -22,7 +22,7 @@ class MainActivity : FlutterFragmentActivity() {
         // Pre-warm the secondary engine for instant floating access
         try {
             if (io.flutter.embedding.engine.FlutterEngineCache.getInstance().get("quick_vault_engine") == null) {
-                val quickEngine = io.flutter.embedding.engine.FlutterEngine(context).apply {
+                val quickEngine = io.flutter.embedding.engine.FlutterEngine(this).apply {
                     navigationChannel.pushRoute("quick_bubble_dialog")
                     dartExecutor.executeDartEntrypoint(
                         io.flutter.embedding.engine.dart.DartExecutor.DartEntrypoint.createDefault()
