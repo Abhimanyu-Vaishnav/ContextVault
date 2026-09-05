@@ -16,6 +16,16 @@ class MainActivity : FlutterFragmentActivity() {
     private val NOTIFICATION_ID = 8881
     private val CHANNEL_ID = "contextvault_quick_access_channel"
 
+    override fun onResume() {
+        super.onResume()
+        FloatingBubbleService.instance?.setAppForegroundState(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        FloatingBubbleService.instance?.setAppForegroundState(false)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
