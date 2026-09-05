@@ -141,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Check if launched via Quick Settings Tile or Quick Action
       const MethodChannel('com.contextvault.app/quick_access').invokeMethod('getLaunchIntentAction').then((action) {
-        if (action == 'ACTION_QUICK_SEARCH' && mounted) {
+        if ((action == 'quick_access' || action == 'ACTION_QUICK_SEARCH') && mounted) {
           QuickSearchDialog.show(context);
         }
       }).catchError((_) {});

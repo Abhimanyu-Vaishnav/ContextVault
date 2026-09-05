@@ -37,7 +37,6 @@ dependencies:
   path_provider: ^2.1.6
   purchases_flutter: ^10.10.1
   onesignal_flutter: ^5.6.8
-  flutter_overlay_window: ^0.5.0
   flutter_riverpod: ^2.6.1
   sqflite: ^2.4.3
   path: ^1.9.1

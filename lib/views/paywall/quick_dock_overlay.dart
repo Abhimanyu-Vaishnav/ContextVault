@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/snippet.dart';
 import '../../services/database_service.dart';
@@ -79,17 +78,12 @@ class _QuickDockOverlayWidgetState extends State<QuickDockOverlayWidget> {
     HapticFeedback.selectionClick();
     final nextState = !_isExpanded;
     if (nextState) {
-      try {
-        await FlutterOverlayWindow.resizeOverlay(900, 1400, true);
-        await _loadSnippetsFromPrefs();
-        if (mounted) {
-          setState(() {
-            _isExpanded = true;
-            _activeSnippetForForm = null;
-          });
-        }
-      } catch (e) {
-        debugPrint("RESIZE_ERROR: $e");
+      await _loadSnippetsFromPrefs();
+      if (mounted) {
+        setState(() {
+          _isExpanded = true;
+          _activeSnippetForForm = null;
+        });
       }
     } else {
       await _collapseOverlay();
@@ -97,22 +91,17 @@ class _QuickDockOverlayWidgetState extends State<QuickDockOverlayWidget> {
   }
 
   Future<void> _collapseOverlay() async {
-    try {
-      if (mounted) {
-        setState(() {
-          _isExpanded = false;
-          _activeSnippetForForm = null;
-        });
-      }
-      await FlutterOverlayWindow.resizeOverlay(160, 240, true);
-    } catch (e) {
-      debugPrint("COLLAPSE_ERROR: $e");
+    if (mounted) {
+      setState(() {
+        _isExpanded = false;
+        _activeSnippetForForm = null;
+      });
     }
   }
 
   Future<void> _killOverlay() async {
     HapticFeedback.heavyImpact();
-    await FlutterOverlayWindow.closeOverlay();
+    await _collapseOverlay();
   }
 
   Future<void> _copySnippet(Snippet snippet) async {

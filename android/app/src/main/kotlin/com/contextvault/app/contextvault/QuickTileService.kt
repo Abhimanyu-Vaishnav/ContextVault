@@ -9,10 +9,13 @@ import androidx.annotation.RequiresApi
 class QuickTileService : TileService() {
     override fun onClick() {
         super.onClick()
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            putExtra("route", "quick_access")
             action = "ACTION_QUICK_SEARCH"
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
-        startActivityAndCollapse(intent)
+        if (intent != null) {
+            startActivityAndCollapse(intent)
+        }
     }
 }

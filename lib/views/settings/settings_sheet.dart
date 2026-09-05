@@ -6,6 +6,7 @@ import '../../services/database_service.dart';
 import '../../services/overlay_service.dart';
 import '../../services/quick_access_service.dart';
 import '../paywall/paywall_sheet.dart';
+import '../quick/quick_search_dialog.dart';
 
 class SettingsSheet extends StatefulWidget {
   const SettingsSheet({super.key});
@@ -177,23 +178,23 @@ class _SettingsSheetState extends State<SettingsSheet> {
                         ListTile(
                           leading: const Icon(Icons.dashboard_customize_outlined, color: Color(0xFF58A6FF)),
                           title: const Text(
-                            'Quick Settings Tile',
+                            'Add to Quick Settings Tile',
                             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                           ),
                           subtitle: const Text(
-                            'Pull down status bar & add ContextVault tile for instant 1-tap search',
+                            'Pull down Android notification panel, tap Edit (pencil icon), and drag ContextVault Quick into active tiles.',
                             style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
                           ),
-                          trailing: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF238636).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(6),
+                          trailing: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF238636),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             ),
-                            child: const Text(
-                              'Ready',
-                              style: TextStyle(color: Color(0xFF3FB950), fontSize: 11, fontWeight: FontWeight.bold),
-                            ),
+                            onPressed: () {
+                              QuickSearchDialog.show(context);
+                            },
+                            child: const Text('Test Quick Popup Now', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                           ),
                         ),
                         const Divider(color: Color(0xFF21262D), height: 1),

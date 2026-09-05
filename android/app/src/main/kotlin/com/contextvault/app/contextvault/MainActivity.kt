@@ -22,8 +22,8 @@ class MainActivity : FlutterFragmentActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getLaunchIntentAction" -> {
-                    val action = intent?.action
-                    result.success(action)
+                    val route = intent?.getStringExtra("route") ?: intent?.action
+                    result.success(route)
                 }
                 "startQuickAccessNotification" -> {
                     try {
