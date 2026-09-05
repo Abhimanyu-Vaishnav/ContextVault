@@ -175,9 +175,32 @@ class _SettingsSheetState extends State<SettingsSheet> {
                     child: Column(
                       children: [
                         ListTile(
+                          leading: const Icon(Icons.dashboard_customize_outlined, color: Color(0xFF58A6FF)),
+                          title: const Text(
+                            'Quick Settings Tile',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                          subtitle: const Text(
+                            'Pull down status bar & add ContextVault tile for instant 1-tap search',
+                            style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF238636).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'Ready',
+                              style: TextStyle(color: Color(0xFF3FB950), fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                        const Divider(color: Color(0xFF21262D), height: 1),
+                        ListTile(
                           leading: const Icon(Icons.picture_in_picture_alt_rounded, color: Color(0xFF58A6FF)),
                           title: const Text(
-                            'Edge Quick-Dock Overlay',
+                            'Quick Floating Assistant',
                             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                           ),
                           subtitle: const Text(

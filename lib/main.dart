@@ -16,6 +16,7 @@ import 'views/auth/biometric_lock_screen.dart';
 import 'views/settings/settings_sheet.dart';
 import 'services/overlay_service.dart';
 import 'views/paywall/quick_dock_overlay.dart';
+import 'views/quick/quick_search_dialog.dart';
 
 @pragma("vm:entry-point")
 void overlayMain() {
@@ -133,6 +134,19 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<String> _categories = ['All', 'Work', 'Personal', 'Dev', 'Templates'];
   final FocusNode _searchFocusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Check if launched via Quick Settings Tile or Quick Action
+      const MethodChannel('com.contextvault.app/quick_access').invokeMethod('getLaunchIntentAction').then((action) {
+        if (action == 'ACTION_QUICK_SEARCH' && mounted) {
+          QuickSearchDialog.show(context);
+        }
+      }).catchError((_) {});
+    });
+  }
 
   @override
   void dispose() {

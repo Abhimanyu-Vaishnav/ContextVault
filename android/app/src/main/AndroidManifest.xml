@@ -20,6 +20,16 @@
             android:name="flutter.overlay.window.flutter_overlay_window.OverlayService"
             android:exported="false"
             android:foregroundServiceType="specialUse" />
+        <service
+            android:name="com.contextvault.app.contextvault.QuickTileService"
+            android:exported="true"
+            android:label="ContextVault Quick"
+            android:icon="@mipmap/ic_launcher"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
         <activity
             android:name="com.contextvault.app.contextvault.MainActivity"
             android:exported="true"

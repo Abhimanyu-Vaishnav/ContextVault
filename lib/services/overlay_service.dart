@@ -6,7 +6,7 @@ import 'revenue_cat_service.dart';
 import '../views/paywall/paywall_sheet.dart';
 
 class OverlayService {
-  /// Check whether the Android system overlay permission (SYSTEM_ALERT_WINDOW) is granted
+  /// Check whether system overlay permission is granted
   static Future<bool> isPermissionGranted() async {
     if (kIsWeb || !Platform.isAndroid) return false;
     try {
@@ -17,7 +17,7 @@ class OverlayService {
     }
   }
 
-  /// Request system overlay permission from Android System Settings
+  /// Request system overlay permission
   static Future<bool?> requestPermission() async {
     if (kIsWeb || !Platform.isAndroid) return false;
     try {
@@ -28,11 +28,11 @@ class OverlayService {
     }
   }
 
-  /// Show or toggle the floating edge bubble overlay window
+  /// Show or toggle the floating edge dock
   static Future<bool> toggleOverlay(BuildContext context) async {
     if (kIsWeb || !Platform.isAndroid) return false;
 
-    // Check Pro entitlement status first
+    // Check Pro entitlement status
     final isPro = await RevenueCatService.isProUser();
     if (!isPro) {
       if (context.mounted) {
@@ -54,67 +54,40 @@ class OverlayService {
     }
 
     final bool isGranted = await FlutterOverlayWindow.isPermissionGranted();
-    print("DEBUG_OVERLAY: Permission Status -> $isGranted");
-
     if (!isGranted) {
-      final bool? requested = await FlutterOverlayWindow.requestPermission();
-      print("DEBUG_OVERLAY: Permission Requested -> $requested");
+      await FlutterOverlayWindow.requestPermission();
       return false;
     }
 
-    final bool isActive = await FlutterOverlayWindow.isActive();
-    print("DEBUG_OVERLAY: Is Active -> $isActive");
-
-    if (isActive) {
-      await FlutterOverlayWindow.closeOverlay();
-      print("DEBUG_OVERLAY: Overlay closed");
-      return false;
-    } else {
-      await FlutterOverlayWindow.showOverlay(
-        enableDrag: true,
-        overlayTitle: "ContextVault",
-        overlayContent: "Quick access handle ready",
-        flag: OverlayFlag.defaultFlag,
-        visibility: NotificationVisibility.visibilitySecret,
-        positionGravity: PositionGravity.right,
-        height: 75,
-        width: 65,
-      );
-      print("DEBUG_OVERLAY: Overlay launched successfully");
-      return true;
-    }
-  }
-
-  /// Show the floating edge dock overlay window
-  static Future<void> showOverlay() async {
-    if (kIsWeb || !Platform.isAndroid) return;
     try {
       if (await FlutterOverlayWindow.isActive()) {
         await FlutterOverlayWindow.closeOverlay();
+        return false;
+      } else {
+        await FlutterOverlayWindow.showOverlay(
+          enableDrag: true,
+          overlayTitle: "ContextVault",
+          overlayContent: "Quick Access",
+          flag: OverlayFlag.defaultFlag,
+          visibility: NotificationVisibility.visibilitySecret,
+          positionGravity: PositionGravity.right,
+          height: 70,
+          width: 60,
+        );
+        return true;
       }
-      await FlutterOverlayWindow.showOverlay(
-        enableDrag: true,
-        overlayTitle: "ContextVault",
-        overlayContent: "Quick access handle ready",
-        flag: OverlayFlag.defaultFlag,
-        visibility: NotificationVisibility.visibilitySecret,
-        positionGravity: PositionGravity.right,
-        height: 75,
-        width: 65,
-      );
-      debugPrint("[OverlayService] Floating Edge Dock activated.");
     } catch (e) {
-      debugPrint("[OverlayService] Error showing overlay: $e");
+      debugPrint("[OverlayService] Error toggling overlay: $e");
+      return false;
     }
   }
 
-  /// Close the floating overlay window
+  /// Safely close the overlay
   static Future<void> closeOverlay() async {
     if (kIsWeb || !Platform.isAndroid) return;
     try {
       if (await FlutterOverlayWindow.isActive()) {
         await FlutterOverlayWindow.closeOverlay();
-        debugPrint("[OverlayService] Floating Edge Dock closed.");
       }
     } catch (e) {
       debugPrint("[OverlayService] Error closing overlay: $e");

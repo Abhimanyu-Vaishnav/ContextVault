@@ -10,6 +10,9 @@ import '../../core/utils/template_parser.dart';
 @pragma("vm:entry-point")
 void overlayMain() {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (details) {
+    debugPrint("OVERLAY_FLUTTER_ERROR: ${details.exception}");
+  };
   runApp(const QuickDockOverlayApp());
 }
 
@@ -76,27 +79,35 @@ class _QuickDockOverlayWidgetState extends State<QuickDockOverlayWidget> {
     HapticFeedback.selectionClick();
     final nextState = !_isExpanded;
     if (nextState) {
-      // Expand window to 320x440 and load latest snippets
-      await FlutterOverlayWindow.resizeOverlay(320, 440, true);
-      await _loadSnippetsFromPrefs();
-      if (mounted) {
-        setState(() {
-          _isExpanded = true;
-          _activeSnippetForForm = null;
-        });
+      try {
+        await FlutterOverlayWindow.resizeOverlay(900, 1400, true);
+        await _loadSnippetsFromPrefs();
+        if (mounted) {
+          setState(() {
+            _isExpanded = true;
+            _activeSnippetForForm = null;
+          });
+        }
+      } catch (e) {
+        debugPrint("RESIZE_ERROR: $e");
       }
     } else {
-      // Collapse window back to 65x75 pill to restore phone touch interaction instantly
       await _collapseOverlay();
     }
   }
 
   Future<void> _collapseOverlay() async {
-    setState(() {
-      _isExpanded = false;
-      _activeSnippetForForm = null;
-    });
-    await FlutterOverlayWindow.resizeOverlay(65, 75, true);
+    try {
+      if (mounted) {
+        setState(() {
+          _isExpanded = false;
+          _activeSnippetForForm = null;
+        });
+      }
+      await FlutterOverlayWindow.resizeOverlay(160, 240, true);
+    } catch (e) {
+      debugPrint("COLLAPSE_ERROR: $e");
+    }
   }
 
   Future<void> _killOverlay() async {
@@ -110,7 +121,6 @@ class _QuickDockOverlayWidgetState extends State<QuickDockOverlayWidget> {
     final listVars = TemplateParser.extractListVariables(snippet.content);
 
     if (vars.isNotEmpty || listVars.isNotEmpty) {
-      // Show dynamic form in-tray
       setState(() {
         _activeSnippetForForm = snippet;
         _inputControllers = {for (var v in vars) v: TextEditingController()};
@@ -122,7 +132,6 @@ class _QuickDockOverlayWidgetState extends State<QuickDockOverlayWidget> {
     await Clipboard.setData(ClipboardData(text: textToCopy));
     DatabaseService.markUsed(snippet);
 
-    // Instant retract back to pill mode and unblock phone touches
     await _collapseOverlay();
   }
 
@@ -155,7 +164,6 @@ class _QuickDockOverlayWidgetState extends State<QuickDockOverlayWidget> {
       color: Colors.transparent,
       child: Stack(
         children: [
-          // Outside Dismiss Tap Detector (resizes overlay back to 60x90 pill instantly)
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -163,8 +171,6 @@ class _QuickDockOverlayWidgetState extends State<QuickDockOverlayWidget> {
               child: Container(color: Colors.transparent),
             ),
           ),
-
-          // Expanded Drawer Container (320dp width x 480dp height)
           Positioned(
             top: 0,
             right: 0,
@@ -175,29 +181,26 @@ class _QuickDockOverlayWidgetState extends State<QuickDockOverlayWidget> {
     );
   }
 
-  /// Collapsed Edge Handle Pill (50x60 pill)
+  /// Collapsed Edge Handle Pill (160x240 raw pixel window size for high-DPI scaling)
   Widget _buildCollapsedPill() {
     return Material(
       color: Colors.transparent,
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: GestureDetector(
+      child: Center(
+        child: InkWell(
           onTap: _toggleExpanded,
           child: Container(
-            width: 50,
-            height: 60,
-            decoration: const BoxDecoration(
-              color: Color(0xEE161B22),
-              borderRadius: BorderRadius.horizontal(left: Radius.circular(16)),
-              border: Border.fromBorderSide(
-                BorderSide(color: Color(0xFF30363D)),
-              ),
+            width: 48,
+            height: 72,
+            decoration: BoxDecoration(
+              color: const Color(0xEE161B22),
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+              border: Border.all(color: const Color(0xFF30363D), width: 1.5),
             ),
             child: const Center(
               child: Icon(
-                Icons.bolt,
+                Icons.bolt_rounded,
                 color: Color(0xFF58A6FF),
-                size: 24,
+                size: 26,
               ),
             ),
           ),
