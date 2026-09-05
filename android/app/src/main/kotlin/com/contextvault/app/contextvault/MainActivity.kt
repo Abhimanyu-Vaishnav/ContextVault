@@ -80,8 +80,8 @@ class MainActivity : FlutterFragmentActivity() {
         )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("ContextVault Quick Access")
-            .setContentText("Tap an action to instantly search or paste snippets.")
+            .setContentTitle("⚡ ContextVault Active")
+            .setContentText("Tap to search snippets")
             .setSmallIcon(android.R.drawable.ic_menu_agenda)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

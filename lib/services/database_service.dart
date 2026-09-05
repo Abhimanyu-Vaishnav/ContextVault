@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/snippet.dart';
 
 class DatabaseService {
@@ -164,7 +165,13 @@ class DatabaseService {
     });
   }
 
-  static void _notify() {
+  static void _notify() async {
+    try {
+      final snippets = await getSnippets();
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = snippets.take(20).map((s) => s.toMap()).toList();
+      await prefs.setString('quick_dock_snippets', jsonEncode(jsonList));
+    } catch (_) {}
     _streamController.add([]);
   }
 }

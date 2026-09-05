@@ -72,13 +72,13 @@ class OverlayService {
     } else {
       await FlutterOverlayWindow.showOverlay(
         enableDrag: true,
-        overlayTitle: "ContextVault Quick-Dock",
-        overlayContent: "Quick access active",
+        overlayTitle: "ContextVault",
+        overlayContent: "Quick access handle ready",
         flag: OverlayFlag.defaultFlag,
         visibility: NotificationVisibility.visibilitySecret,
         positionGravity: PositionGravity.right,
-        height: 65,
-        width: 55,
+        height: 75,
+        width: 65,
       );
       print("DEBUG_OVERLAY: Overlay launched successfully");
       return true;
@@ -89,16 +89,18 @@ class OverlayService {
   static Future<void> showOverlay() async {
     if (kIsWeb || !Platform.isAndroid) return;
     try {
-      if (await FlutterOverlayWindow.isActive()) return;
+      if (await FlutterOverlayWindow.isActive()) {
+        await FlutterOverlayWindow.closeOverlay();
+      }
       await FlutterOverlayWindow.showOverlay(
         enableDrag: true,
-        overlayTitle: "ContextVault Quick-Dock",
-        overlayContent: "Tap to expand Edge Vault",
+        overlayTitle: "ContextVault",
+        overlayContent: "Quick access handle ready",
         flag: OverlayFlag.defaultFlag,
         visibility: NotificationVisibility.visibilitySecret,
         positionGravity: PositionGravity.right,
-        height: 65,
-        width: 55,
+        height: 75,
+        width: 65,
       );
       debugPrint("[OverlayService] Floating Edge Dock activated.");
     } catch (e) {

@@ -4,6 +4,7 @@ import '../../services/auth_service.dart';
 import '../../services/revenue_cat_service.dart';
 import '../../services/database_service.dart';
 import '../../services/overlay_service.dart';
+import '../../services/quick_access_service.dart';
 import '../paywall/paywall_sheet.dart';
 
 class SettingsSheet extends StatefulWidget {
@@ -194,6 +195,34 @@ class _SettingsSheetState extends State<SettingsSheet> {
                             },
                             child: const Text('Toggle Dock', style: TextStyle(fontSize: 12)),
                           ),
+                        ),
+                        const Divider(color: Color(0xFF21262D), height: 1),
+                        SwitchListTile(
+                          activeThumbColor: const Color(0xFF58A6FF),
+                          title: const Text(
+                            'Quick Access Notification',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'Sticky notification for immediate snippet search',
+                            style: TextStyle(
+                              color: Color(0xFF8B949E),
+                              fontSize: 12,
+                            ),
+                          ),
+                          secondary: const Icon(
+                            Icons.notifications_active_outlined,
+                            color: Color(0xFF58A6FF),
+                          ),
+                          value: QuickAccessService.isNotificationActive(),
+                          onChanged: (val) async {
+                            await QuickAccessService.toggleNotification(val);
+                            setState(() {});
+                          },
                         ),
                         const Divider(color: Color(0xFF21262D), height: 1),
                         SwitchListTile(

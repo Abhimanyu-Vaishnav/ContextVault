@@ -43,14 +43,6 @@ void main() async {
     debugPrint("[Main] RevenueCatService init failed: $e\n$stack");
   }
 
-  // 3. Resilient QuickAccessService Init
-  try {
-    await QuickAccessService.startQuickAccessNotification();
-    debugPrint("[Main] QuickAccessService started.");
-  } catch (e, stack) {
-    debugPrint("[Main] QuickAccessService start failed: $e\n$stack");
-  }
-
   // Guarantee UI render regardless of background service state
   runApp(const ContextVaultApp());
 }
