@@ -5,7 +5,6 @@ import 'core/utils/template_parser.dart';
 import 'models/snippet.dart';
 import 'services/database_service.dart';
 import 'services/revenue_cat_service.dart';
-import 'services/quick_access_service.dart';
 import 'services/backup_service.dart';
 import 'services/auth_service.dart';
 import 'views/paywall/paywall_sheet.dart';
