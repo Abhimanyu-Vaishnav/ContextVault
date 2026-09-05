@@ -40,25 +40,30 @@ class DatabaseService {
       path,
       version: 2,
       onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE snippets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            content TEXT NOT NULL,
-            category TEXT DEFAULT 'All',
-            useCount INTEGER DEFAULT 0,
-            isPinned INTEGER DEFAULT 0,
-            createdAt TEXT,
-            lastUsedAt TEXT
-          )
-        ''');
+        await _createTables(db);
+      },
+      onOpen: (db) async {
+        await _createTables(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute("ALTER TABLE snippets ADD COLUMN category TEXT DEFAULT 'All'");
-        }
+        await _createTables(db);
       },
     );
+  }
+
+  static Future<void> _createTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS snippets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        category TEXT DEFAULT 'All',
+        useCount INTEGER DEFAULT 0,
+        isPinned INTEGER DEFAULT 0,
+        createdAt TEXT,
+        lastUsedAt TEXT
+      )
+    ''');
   }
 
   static Stream<List<Snippet>> watchSnippets({String query = '', String category = 'All'}) async* {
