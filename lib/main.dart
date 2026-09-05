@@ -111,11 +111,33 @@ class _ContextVaultAppState extends State<ContextVaultApp> with WidgetsBindingOb
       title: 'ContextVault',
       theme: AppTheme.darkTheme,
       debugShowCheckedModeBanner: false,
-      home: _isLocked
-          ? BiometricLockScreen(
-              onUnlocked: () => setState(() => _isLocked = false),
-            )
-          : const HomeScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => _isLocked
+            ? BiometricLockScreen(
+                onUnlocked: () => setState(() => _isLocked = false),
+              )
+            : const HomeScreen(),
+        'quick_bubble_dialog': (context) => const QuickBubbleDialogScaffold(),
+      },
+    );
+  }
+}
+
+class QuickBubbleDialogScaffold extends StatelessWidget {
+  const QuickBubbleDialogScaffold({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => SystemNavigator.pop(),
+        child: const Center(
+          child: QuickSearchDialogContent(),
+        ),
+      ),
     );
   }
 }
@@ -141,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Check if launched via Quick Settings Tile or Quick Action
       const MethodChannel('com.contextvault.app/quick_access').invokeMethod('getLaunchIntentAction').then((action) {
-        if ((action == 'quick_access' || action == 'ACTION_QUICK_SEARCH') && mounted) {
+        if ((action == 'quick_access' || action == 'ACTION_QUICK_SEARCH' || action == 'quick_bubble_dialog') && mounted) {
           QuickSearchDialog.show(context);
         }
       }).catchError((_) {});

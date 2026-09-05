@@ -159,14 +159,10 @@ class FloatingBubbleService : Service() {
     }
 
     private fun openQuickAccessVault() {
-        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-            putExtra("route", "quick_access")
-            action = "ACTION_QUICK_SEARCH"
+        val launchIntent = Intent(this, QuickSnippetActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
-        if (launchIntent != null) {
-            startActivity(launchIntent)
-        }
+        startActivity(launchIntent)
     }
 
     override fun onDestroy() {
