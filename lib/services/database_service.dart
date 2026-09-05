@@ -26,7 +26,10 @@ class DatabaseService {
       }
       return key;
     } catch (e) {
-      debugPrint('[DatabaseService] Hardware KeyStore error: $e');
+      debugPrint('[DatabaseService] Hardware KeyStore error (recovering): $e');
+      try {
+        await _secureStorage.delete(key: _dbKeyName);
+      } catch (_) {}
       return 'fallback_secure_master_key_context_vault_2026';
     }
   }
