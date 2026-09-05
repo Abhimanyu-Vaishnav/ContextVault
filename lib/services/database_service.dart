@@ -165,12 +165,15 @@ class DatabaseService {
     });
   }
 
+  static const _quickChannel = MethodChannel('com.contextvault.app/quick_access');
+
   static void _notify() async {
     try {
       final snippets = await getSnippets();
       final prefs = await SharedPreferences.getInstance();
       final jsonList = snippets.take(20).map((s) => s.toMap()).toList();
       await prefs.setString('quick_dock_snippets', jsonEncode(jsonList));
+      await _quickChannel.invokeMethod('notifySnippetsUpdated');
     } catch (_) {}
     _streamController.add([]);
   }

@@ -2,16 +2,17 @@ package com.contextvault.app.contextvault
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.animation.ObjectAnimator
-import android.animation.PropertyValuesHolder
+import android.animation.ValueAnimator
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
@@ -71,6 +72,7 @@ class FloatingBubbleService : Service() {
 
     private var allSnippets = mutableListOf<SnippetItem>()
     private var filteredSnippets = mutableListOf<SnippetItem>()
+    private var currentSearchQuery = ""
 
     // Containers inside Panel
     private var snippetListContainer: LinearLayout? = null
@@ -79,6 +81,8 @@ class FloatingBubbleService : Service() {
     private var tokenFieldsContainer: LinearLayout? = null
     private var currentActiveSnippet: SnippetItem? = null
     private var dynamicInputMap = mutableMapOf<String, EditText>()
+
+    private var snippetsUpdateReceiver: BroadcastReceiver? = null
 
     data class SnippetItem(val title: String, val content: String)
 
@@ -91,25 +95,55 @@ class FloatingBubbleService : Service() {
         startForegroundServiceNotification()
         createBubbleView()
         createPanelView()
+        registerSnippetsUpdateReceiver()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         instance = null
-        removeFloatingViews()
+        unregisterSnippetsUpdateReceiver()
+        removeFloatingViewsSafely()
+    }
+
+    private fun registerSnippetsUpdateReceiver() {
+        snippetsUpdateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == "com.contextvault.app.SNIPPETS_UPDATED") {
+                    loadSnippetsFromStorage()
+                    filterSnippets(currentSearchQuery)
+                }
+            }
+        }
+        val filter = IntentFilter("com.contextvault.app.SNIPPETS_UPDATED")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(snippetsUpdateReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(snippetsUpdateReceiver, filter)
+        }
+    }
+
+    private fun unregisterSnippetsUpdateReceiver() {
+        snippetsUpdateReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        snippetsUpdateReceiver = null
     }
 
     fun setAppForegroundState(isForeground: Boolean) {
         if (isForeground) {
             isHiddenByForeground = true
-            removeFloatingViews()
+            removeFloatingViewsSafely()
         } else {
             isHiddenByForeground = false
             restoreFloatingBubble()
         }
     }
 
-    private fun removeFloatingViews() {
+    private fun removeFloatingViewsSafely() {
         if (bubbleView?.windowToken != null && windowManager != null) {
             try {
                 windowManager?.removeView(bubbleView)
@@ -236,6 +270,8 @@ class FloatingBubbleService : Service() {
                         if (isClick) {
                             v.performClick()
                             showPanelWithAnimation()
+                        } else {
+                            snapBubbleToNearestBezel()
                         }
                         return true
                     }
@@ -249,6 +285,27 @@ class FloatingBubbleService : Service() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    private fun snapBubbleToNearestBezel() {
+        val currentParams = bubbleParams ?: return
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+
+        val currentX = currentParams.x
+        val targetX = if (currentX < screenWidth / 2) 20 else screenWidth - (52 * displayMetrics.density).toInt() - 20
+
+        val animator = ValueAnimator.ofInt(currentX, targetX).apply {
+            duration = 200
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { anim ->
+                currentParams.x = anim.animatedValue as Int
+                if (bubbleView?.windowToken != null) {
+                    windowManager?.updateViewLayout(bubbleView, currentParams)
+                }
+            }
+        }
+        animator.start()
     }
 
     private fun createPanelView() {
@@ -271,6 +328,7 @@ class FloatingBubbleService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.CENTER
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN
         }
 
         // Root container for Panel
@@ -423,7 +481,8 @@ class FloatingBubbleService : Service() {
         searchEdit.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                filterSnippets(s.toString())
+                currentSearchQuery = s.toString()
+                filterSnippets(currentSearchQuery)
             }
             override fun afterTextChanged(s: Editable?) {}
         })
@@ -545,7 +604,6 @@ class FloatingBubbleService : Service() {
 
         try {
             if (bubbleView?.windowToken != null) {
-                // Animate Bubble out
                 bubbleView?.animate()
                     ?.scaleX(0.5f)
                     ?.scaleY(0.5f)
@@ -620,6 +678,7 @@ class FloatingBubbleService : Service() {
     private fun switchToListView() {
         tokenInputViewGroup?.visibility = View.GONE
         snippetListViewGroup?.visibility = View.VISIBLE
+        setFocusableState(false)
     }
 
     private fun switchToTokenView(snippet: SnippetItem, tokenFields: List<String>) {
@@ -685,6 +744,20 @@ class FloatingBubbleService : Service() {
 
         snippetListViewGroup?.visibility = View.GONE
         tokenInputViewGroup?.visibility = View.VISIBLE
+        setFocusableState(true)
+    }
+
+    private fun setFocusableState(focusable: Boolean) {
+        val pParams = panelParams ?: return
+        if (focusable) {
+            pParams.flags = pParams.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+        } else {
+            pParams.flags = pParams.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        }
+
+        if (panelView?.windowToken != null) {
+            windowManager?.updateViewLayout(panelView, pParams)
+        }
     }
 
     private fun processAndCopyTokenTemplate() {

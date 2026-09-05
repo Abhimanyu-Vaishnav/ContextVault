@@ -68,6 +68,18 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(false)
                     }
                 }
+                "notifySnippetsUpdated" -> {
+                    try {
+                        val intent = Intent("com.contextvault.app.SNIPPETS_UPDATED").apply {
+                            setPackage(packageName)
+                        }
+                        sendBroadcast(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        result.success(false)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
