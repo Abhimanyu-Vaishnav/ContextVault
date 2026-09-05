@@ -7,7 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'coupon_service.dart';
 
 class RevenueCatService {
-  static const _apiKeyAndroid = "test_rVYLVfTXpbrozVIFUsYtdsZNSha";
+  // RevenueCat Public API Keys
+  static const String _androidApiKey = 'goog_YOUR_ACTUAL_ANDROID_PUBLIC_KEY';
+  static const String _iosApiKey = 'appl_YOUR_ACTUAL_IOS_PUBLIC_KEY';
+
   static const _secureStorage = FlutterSecureStorage();
   static const _appUserIdKey = 'vault_app_user_id';
   static const _localProGrantKey = 'vault_local_pro_grant';
@@ -44,13 +47,31 @@ class RevenueCatService {
 
       if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
 
-      await Purchases.setLogLevel(LogLevel.debug);
-      PurchasesConfiguration configuration = PurchasesConfiguration(_apiKeyAndroid)
+      if (kDebugMode) {
+        await Purchases.setLogLevel(LogLevel.debug);
+      }
+
+      String apiKey = '';
+      if (Platform.isAndroid) {
+        apiKey = _androidApiKey;
+      } else if (Platform.isIOS) {
+        apiKey = _iosApiKey;
+      }
+
+      if (apiKey.isEmpty || apiKey.contains('YOUR_ACTUAL')) {
+        debugPrint("REVENUECAT_CONFIG_WARNING: Valid platform API key not supplied (key starting with goog_ on Android / appl_ on iOS required). SDK in graceful offline fallback mode.");
+        _isInitialized = false;
+        proStatusNotifier.value = await isProUser();
+        return;
+      }
+
+      PurchasesConfiguration configuration = PurchasesConfiguration(apiKey)
         ..appUserID = _appUserId
         ..entitlementVerificationMode = EntitlementVerificationMode.informational;
+
       await Purchases.configure(configuration);
       _isInitialized = true;
-      debugPrint("[RevenueCatService] Initialized with App User ID: $_appUserId");
+      debugPrint("REVENUECAT_INIT_SUCCESS: Configured with key starting with ${apiKey.substring(0, 5)}...");
 
       // Register CustomerInfo update listener for instant broadcast
       Purchases.addCustomerInfoUpdateListener((customerInfo) async {
@@ -63,24 +84,26 @@ class RevenueCatService {
       });
 
       // Initial entitlement state check
-      CustomerInfo info = await Purchases.getCustomerInfo();
-      print("DEBUG_RC: Active Entitlements -> ${info.entitlements.active.keys}");
-      print("DEBUG_RC: All Entitlements -> ${info.entitlements.all.keys}");
-      print("DEBUG_RC: Active Subscriptions -> ${info.activeSubscriptions}");
+      try {
+        CustomerInfo info = await Purchases.getCustomerInfo();
+        debugPrint("DEBUG_RC: Active Entitlements -> ${info.entitlements.active.keys}");
+      } catch (e) {
+        debugPrint("[RevenueCatService] CustomerInfo check during init fallback: $e");
+      }
 
       final isPro = await isProUser();
       proStatusNotifier.value = isPro;
     } catch (e, stack) {
       _isInitialized = false;
-      debugPrint("[RevenueCatService] Initialization failed (graceful fallback): $e\n$stack");
+      debugPrint("REVENUECAT_INIT_ERROR: $e\n$stack");
     }
   }
 
   /// Dynamic active entitlement evaluation helper
   static bool hasActiveEntitlement(CustomerInfo info) {
-    print("DEBUG_RC: Active Entitlements -> ${info.entitlements.active.keys}");
-    print("DEBUG_RC: All Entitlements -> ${info.entitlements.all.keys}");
-    print("DEBUG_RC: Active Subscriptions -> ${info.activeSubscriptions}");
+    debugPrint("DEBUG_RC: Active Entitlements -> ${info.entitlements.active.keys}");
+    debugPrint("DEBUG_RC: All Entitlements -> ${info.entitlements.all.keys}");
+    debugPrint("DEBUG_RC: Active Subscriptions -> ${info.activeSubscriptions}");
 
     // If ANY active entitlement exists, OR activeSubscriptions is NOT empty, grant Pro!
     if (info.entitlements.active.isNotEmpty || info.activeSubscriptions.isNotEmpty) {
@@ -126,8 +149,10 @@ class RevenueCatService {
   /// Check if user has active Pro entitlement with verification, promo, local grant & sandbox override
   static Future<bool> isProUser() async {
     if (_sandboxProOverride) return true;
-    final isPromoActive = await CouponService.isPromoProActive();
-    if (isPromoActive) return true;
+    try {
+      final isPromoActive = await CouponService.isPromoProActive();
+      if (isPromoActive) return true;
+    } catch (_) {}
 
     if (!_isInitialized) {
       // Check secure storage cached grant fallback for restart resilience
@@ -140,9 +165,7 @@ class RevenueCatService {
 
     try {
       CustomerInfo customerInfo = await Purchases.getCustomerInfo();
-      print("DEBUG_RC: Active Entitlements -> ${customerInfo.entitlements.active.keys}");
-      print("DEBUG_RC: All Entitlements -> ${customerInfo.entitlements.all.keys}");
-      print("DEBUG_RC: Active Subscriptions -> ${customerInfo.activeSubscriptions}");
+      debugPrint("DEBUG_RC: Active Entitlements -> ${customerInfo.entitlements.active.keys}");
 
       final active = hasActiveEntitlement(customerInfo);
       if (active) {
@@ -185,7 +208,11 @@ class RevenueCatService {
   // Listener callback stream wrapper
   static void addCustomerInfoListener(Function(CustomerInfo) onCustomerInfoUpdated) {
     if (!_isInitialized) return;
-    Purchases.addCustomerInfoUpdateListener(onCustomerInfoUpdated);
+    try {
+      Purchases.addCustomerInfoUpdateListener(onCustomerInfoUpdated);
+    } catch (e) {
+      debugPrint("[RevenueCatService] Failed to attach CustomerInfo listener: $e");
+    }
   }
 
   // Restore Purchases with forced refresh & verification
@@ -194,9 +221,7 @@ class RevenueCatService {
     try {
       await Purchases.restorePurchases();
       final refreshedInfo = await Purchases.getCustomerInfo();
-      print("DEBUG_RC: Active Entitlements -> ${refreshedInfo.entitlements.active.keys}");
-      print("DEBUG_RC: All Entitlements -> ${refreshedInfo.entitlements.all.keys}");
-      print("DEBUG_RC: Active Subscriptions -> ${refreshedInfo.activeSubscriptions}");
+      debugPrint("DEBUG_RC: Active Entitlements -> ${refreshedInfo.entitlements.active.keys}");
 
       final isPro = hasActiveEntitlement(refreshedInfo);
 
@@ -226,9 +251,7 @@ class RevenueCatService {
     try {
       PurchaseResult purchaseResult = await Purchases.purchase(PurchaseParams.package(package));
       final info = purchaseResult.customerInfo;
-      print("DEBUG_RC: Active Entitlements -> ${info.entitlements.active.keys}");
-      print("DEBUG_RC: All Entitlements -> ${info.entitlements.all.keys}");
-      print("DEBUG_RC: Active Subscriptions -> ${info.activeSubscriptions}");
+      debugPrint("DEBUG_RC: Active Entitlements -> ${info.entitlements.active.keys}");
 
       final isPro = hasActiveEntitlement(info);
 
