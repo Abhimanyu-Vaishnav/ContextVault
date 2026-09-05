@@ -874,6 +874,18 @@ class _HomeScreenState extends State<HomeScreen> {
         category: _selectedCategory,
       ),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text(
+                'Error loading snippets: ${snapshot.error}',
+                style: const TextStyle(color: Color(0xFFF85149), fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator(color: Color(0xFF58A6FF)));
         }
@@ -940,6 +952,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       category: _selectedCategory,
                     ),
                     builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              'Error: ${snapshot.error}',
+                              style: const TextStyle(color: Color(0xFFF85149), fontSize: 12),
+                            ),
+                          ),
+                        );
+                      }
                       if (!snapshot.hasData) {
                         return const Center(child: CircularProgressIndicator(color: Color(0xFF58A6FF)));
                       }
