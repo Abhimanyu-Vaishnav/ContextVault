@@ -19,6 +19,21 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        // Pre-warm the secondary engine for instant floating access
+        try {
+            if (io.flutter.embedding.engine.FlutterEngineCache.getInstance().get("quick_vault_engine") == null) {
+                val quickEngine = io.flutter.embedding.engine.FlutterEngine(context).apply {
+                    navigationChannel.pushRoute("quick_bubble_dialog")
+                    dartExecutor.executeDartEntrypoint(
+                        io.flutter.embedding.engine.dart.DartExecutor.DartEntrypoint.createDefault()
+                    )
+                }
+                io.flutter.embedding.engine.FlutterEngineCache.getInstance().put("quick_vault_engine", quickEngine)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getLaunchIntentAction" -> {

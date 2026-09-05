@@ -96,7 +96,9 @@ class _QuickSearchDialogContentState extends State<QuickSearchDialogContent> {
   @override
   Widget build(BuildContext context) {
     final mediaWidth = MediaQuery.of(context).size.width;
-    final dialogWidth = (mediaWidth * 0.9).clamp(280.0, 330.0);
+    final mediaHeight = MediaQuery.of(context).size.height;
+    final dialogWidth = (mediaWidth * 0.88).clamp(280.0, 350.0);
+    final dialogMaxHeight = mediaHeight * 0.55;
 
     final filtered = _snippets.where((s) {
       if (_searchQuery.trim().isEmpty) return true;
@@ -110,19 +112,19 @@ class _QuickSearchDialogContentState extends State<QuickSearchDialogContent> {
         color: Colors.transparent,
         child: Container(
           width: dialogWidth,
-          constraints: const BoxConstraints(
-            maxHeight: 460,
+          constraints: BoxConstraints(
+            maxHeight: dialogMaxHeight,
           ),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color(0xFF0D1117),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: const Color(0xFF30363D), width: 1.5),
             boxShadow: const [
               BoxShadow(
-                color: Colors.black54,
-                blurRadius: 16,
-                spreadRadius: 4,
+                color: Colors.black45,
+                blurRadius: 20,
+                spreadRadius: 2,
               ),
             ],
           ),
@@ -180,14 +182,17 @@ class _QuickSearchDialogContentState extends State<QuickSearchDialogContent> {
               const SizedBox(height: 12),
 
               // Snippet List
-              Expanded(
+              Flexible(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator(color: Color(0xFF58A6FF)))
                     : filtered.isEmpty
                         ? const Center(
-                            child: Text(
-                              'No matching snippets found',
-                              style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Text(
+                                'No matching snippets found',
+                                style: TextStyle(color: Color(0xFF8B949E), fontSize: 12),
+                              ),
                             ),
                           )
                         : ListView.builder(
