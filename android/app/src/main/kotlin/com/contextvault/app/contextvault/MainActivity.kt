@@ -46,6 +46,43 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.contextvault.app/overlay").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "checkPermission" -> {
+                    val canDraw = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        android.provider.Settings.canDrawOverlays(this)
+                    } else {
+                        true
+                    }
+                    result.success(canDraw)
+                }
+                "startBubble" -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.canDrawOverlays(this)) {
+                        val intent = Intent(
+                            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            android.net.Uri.parse("package:$packageName")
+                        )
+                        startActivity(intent)
+                        result.success(false)
+                    } else {
+                        val intent = Intent(this, FloatingBubbleService::class.java)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                        result.success(true)
+                    }
+                }
+                "stopBubble" -> {
+                    val intent = Intent(this, FloatingBubbleService::class.java)
+                    stopService(intent)
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     private fun showPersistentNotification() {

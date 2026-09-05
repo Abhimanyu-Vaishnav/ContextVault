@@ -17,6 +17,12 @@
         android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher">
         <service
+            android:name="com.contextvault.app.contextvault.FloatingBubbleService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            tools:ignore="ForegroundServicePermission" />
+        <service
             android:name="com.contextvault.app.contextvault.QuickTileService"
             android:exported="true"
             android:label="ContextVault Quick"

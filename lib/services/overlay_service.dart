@@ -2,15 +2,19 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'revenue_cat_service.dart';
+import 'native_overlay_service.dart';
 import '../views/paywall/paywall_sheet.dart';
-import '../views/quick/quick_search_dialog.dart';
 
 class OverlayService {
-  static Future<bool> isPermissionGranted() async => true;
-  static Future<bool?> requestPermission() async => true;
+  static bool _isBubbleRunning = false;
+
+  static Future<bool> isPermissionGranted() async {
+    if (kIsWeb || !Platform.isAndroid) return false;
+    return await NativeOverlayService.checkPermission();
+  }
 
   static Future<bool> toggleOverlay(BuildContext context) async {
-    if (kIsWeb) return false;
+    if (kIsWeb || !Platform.isAndroid) return false;
 
     final isPro = await RevenueCatService.isProUser();
     if (!isPro) {
@@ -32,11 +36,46 @@ class OverlayService {
       return false;
     }
 
-    if (context.mounted) {
-      QuickSearchDialog.show(context);
+    if (_isBubbleRunning) {
+      await NativeOverlayService.stopBubble();
+      _isBubbleRunning = false;
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Floating Edge Assistant stopped.'),
+            backgroundColor: Color(0xFF21262D),
+          ),
+        );
+      }
+      return false;
+    } else {
+      final started = await NativeOverlayService.startBubble();
+      if (started) {
+        _isBubbleRunning = true;
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚡ Floating Edge Assistant active on screen!'),
+              backgroundColor: Color(0xFF238636),
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please grant "Display over other apps" permission in Android Settings.'),
+              backgroundColor: Color(0xFFD29922),
+            ),
+          );
+        }
+      }
+      return started;
     }
-    return true;
   }
 
-  static Future<void> closeOverlay() async {}
+  static Future<void> closeOverlay() async {
+    await NativeOverlayService.stopBubble();
+    _isBubbleRunning = false;
+  }
 }
